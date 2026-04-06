@@ -8,12 +8,10 @@ import {
   Search, 
   LogOut, 
   Plus,
-  ArrowUpRight,
-  MoreVertical
+  ArrowUpRight
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-// Mock Data para o Gráfico Futurista
 const data = [
   { name: 'Seg', valor: 400 },
   { name: 'Ter', valor: 300 },
@@ -28,66 +26,92 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-    <div className="min-h-screen bg-[#050507] text-slate-100 font-sans selection:bg-purple-500/30">
-      
-      {/* SIDEBAR FIXA - GLASSMORPHISM */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-black/20 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col">
+    <div className="min-h-screen bg-[#050507] text-slate-100 font-sans">
+      {/* SIDEBAR */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-black/40 backdrop-blur-2xl border-r border-white/5 z-50 flex flex-col">
         <div className="p-8">
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-xl blur-[2px] group-hover:blur-none transition-all duration-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" />
-            <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent uppercase">
-              OrthoKlin<span className="text-pink-500">.</span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-500 rounded-lg shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
+            <h1 className="text-xl font-bold tracking-tighter uppercase italic">
+              Ortho<span className="text-pink-500">Klin</span>
             </h1>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
-          <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <NavItem icon={<Users size={20} />} label="Pacientes" active={activeTab === 'pacientes'} onClick={() => setActiveTab('pacientes')} />
-          <NavItem icon={<TrendingUp size={20} />} label="Faturamento" active={activeTab === 'finanças'} onClick={() => setActiveTab('finanças')} />
-          <NavItem icon={<Settings size={20} />} label="Configurações" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+        <nav className="flex-1 px-4 space-y-1">
+          <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <NavItem icon={<Users size={18} />} label="Pacientes" active={activeTab === 'pacientes'} onClick={() => setActiveTab('pacientes')} />
+          <NavItem icon={<TrendingUp size={18} />} label="Faturamento" active={activeTab === 'financas'} onClick={() => setActiveTab('financas')} />
+          <NavItem icon={<Settings size={18} />} label="Configurações" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </nav>
 
-        <div className="p-4 border-t border-white/5">
-          <button className="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-pink-400 transition-colors duration-300">
-            <LogOut size={20} />
-            <span className="font-medium text-sm tracking-wide">Sair do Sistema</span>
+        <div className="p-6 border-t border-white/5">
+          <button className="flex items-center gap-3 text-slate-500 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">
+            <LogOut size={16} /> Sair
           </button>
         </div>
       </aside>
 
-      {/* ÁREA PRINCIPAL */}
-      <main className="ml-64 p-8">
-        
-        {/* TOPBAR */}
-        <header className="flex justify-between items-center mb-10">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Pesquisar inteligência..." 
-              className="bg-white/5 border border-white/10 rounded-full pl-10 pr-6 py-2.5 w-80 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:bg-white/10 transition-all placeholder:text-slate-600 text-sm"
-            />
+      {/* CONTEÚDO */}
+      <main className="ml-64 p-10">
+        <header className="flex justify-between items-center mb-12">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+            <input type="text" placeholder="BUSCAR INTELIGÊNCIA..." className="bg-white/5 border border-white/10 rounded-md pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-purple-500 w-64 transition-all" />
           </div>
-
+          
           <div className="flex items-center gap-6">
-            <button className="relative p-2 bg-white/5 rounded-full hover:bg-white/10 transition-all border border-white/10 group">
-              <Bell size={20} className="text-slate-400 group-hover:text-white" />
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-pink-500 rounded-full border-2 border-[#050507]" />
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-              <div className="text-right">
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-widest leading-none">Admin</p>
-                <p className="text-sm font-bold">Dr. Ortho</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 p-[2px]">
-                <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" />
-                </div>
-              </div>
+            <Bell size={20} className="text-slate-400 cursor-pointer" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-[1px]">
+              <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold">OK</div>
             </div>
           </div>
         </header>
 
-        {/* GRID DE KPIS */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* CARDS KPIS */}
+        <div className="grid grid-cols-3 gap-6 mb-10">
+          <KPICard label="PENDENTES" value="R$ 12.450" color="purple" />
+          <KPICard label="CONVERSÃO" value="74%" color="pink" />
+          <KPICard label="TOTAL" value="R$ 89.200" color="white" />
+        </div>
+
+        {/* GRÁFICO */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl">
+          <h3 className="text-xs font-bold tracking-[3px] text-slate-500 uppercase mb-8">Performance de Fluxo</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e91e63" stopOpacity={0.4}/>
+                    <stop offset="100%" stopColor="#e91e63" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+                <XAxis dataKey="name" hide />
+                <Tooltip contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', fontSize: '12px'}} />
+                <Area type="monotone" dataKey="valor" stroke="#e91e63" strokeWidth={3} fill="url(#grad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// COMPONENTES AUXILIARES
+const NavItem = ({ icon, label, active, onClick }) => (
+  <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all ${active ? 'bg-gradient-to-r from-purple-600/20 to-transparent text-white border-l-2 border-purple-500' : 'text-slate-500 hover:text-slate-300'}`}>
+    {icon} <span className="text-[11px] font-bold uppercase tracking-widest">{label}</span>
+  </button>
+);
+
+const KPICard = ({ label, value, color }) => (
+  <div className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:border-purple-500/50 transition-all group">
+    <p className="text-[10px] font-bold text-slate-500 tracking-[2px] mb-2">{label}</p>
+    <h2 className={`text-2xl font-black ${color === 'pink' ? 'text-pink-500' : color === 'purple' ? 'text-purple-500' : 'text-white'}`}>{value}</h2>
+  </div>
+);
+
+export default Dashboard;
