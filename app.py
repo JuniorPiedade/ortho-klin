@@ -4,43 +4,69 @@ from datetime import datetime
 import os
 import plotly.express as px
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="OrthoKlin Pro | Acesso", layout="wide")
+# --- CONFIGURAÇÃO ---
+st.set_page_config(page_title="OrthoKlin | Sistema", layout="wide")
 
-# --- CSS PREMIUM (LOGIN & CADASTRO) ---
+# --- CSS MINIMALISTA DE LUXO ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap');
-    .stApp { background: radial-gradient(circle at top right, #1a0826, #0a0a0c); color: #fff; font-family: 'Inter', sans-serif; }
     
-    .titulo-premium {
-        background: linear-gradient(90deg, #ffffff 0%, #e91e63 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 800; font-size: 2.8rem; text-align: center;
+    .stApp { 
+        background: radial-gradient(circle at center, #1b0c26 0%, #0a0a0c 100%); 
+        color: #ffffff; 
+        font-family: 'Inter', sans-serif; 
     }
 
-    /* BOTÃO ESTILO GOOGLE */
-    .google-btn {
-        display: flex; align-items: center; justify-content: center;
-        background: white; color: #444; border-radius: 12px;
-        padding: 10px; font-weight: 600; cursor: pointer;
-        border: 1px solid #ddd; margin-bottom: 20px;
+    /* TÍTULO EM DEGRADÊ */
+    .gradient-text {
+        background: linear-gradient(90deg, #8e44ad, #e91e63);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        font-size: 3rem;
+        text-align: center;
+        margin-bottom: 30px;
     }
 
-    /* CARD DE LOGIN */
-    .login-box {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 40px; border-radius: 25px;
-        backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-    }
-
-    /* BOTÕES DASHBOARD */
+    /* BOTÕES EXCLUSIVOS (DEGRADÊ) */
     div.stButton > button:first-child {
-        background: linear-gradient(135deg, #8e44ad 0%, #e91e63 100%) !important;
-        color: white !important; border: none !important; border-radius: 12px !important;
-        height: 50px !important; font-weight: 700 !important;
-        box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3) !important;
+        background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        height: 50px !important;
+        width: 100% !important;
+        font-weight: 700 !important;
+        letter-spacing: 1px;
+        transition: 0.3s;
+    }
+    div.stButton > button:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    /* CARD DE PACIENTE */
+    .lead-card {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 20px;
+    }
+    
+    .status-tag {
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    /* SIDEBAR */
+    [data-testid="stSidebar"] {
+        background: rgba(0, 0, 0, 0.5) !important;
+        backdrop-filter: blur(10px);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -53,78 +79,111 @@ def load_users():
     if os.path.exists(USERS_FILE): return pd.read_csv(USERS_FILE)
     return pd.DataFrame([["admin", "ortho2026"]], columns=['usuario', 'senha'])
 
-def save_user(u, s):
-    df_u = load_users()
-    if u not in df_u['usuario'].values:
-        new_u = pd.DataFrame([[u, s]], columns=['usuario', 'senha'])
-        pd.concat([df_u, new_u]).to_csv(USERS_FILE, index=False)
-        return True
-    return False
-
-# --- LOGICA DE NAVEGAÇÃO ---
+# --- GESTÃO DE ESTADO ---
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 if 'tela' not in st.session_state: st.session_state['tela'] = 'login'
 
-# --- TELA DE ACESSO GERAL ---
+# --- TELA DE ACESSO ---
 if not st.session_state['logado']:
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
         st.write("#")
+        # Tentativa de carregar a logo (PNG ou JPG)
         if os.path.exists("logo.png"): st.image("logo.png")
-        st.markdown(f'<p class="titulo-premium">Acesso Geral</p>', unsafe_allow_html=True)
+        elif os.path.exists("logo.jpg"): st.image("logo.jpg")
         
-        with st.container():
-            st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.markdown('<p class="gradient-text">Acesso Geral</p>', unsafe_allow_html=True)
+        
+        if st.session_state['tela'] == 'login':
+            u = st.text_input("Utilizador")
+            p = st.text_input("Senha", type="password")
             
-            if st.session_state['tela'] == 'login':
-                # Botão "Fake" Google para Estética Profissional
-                st.markdown('<div class="google-btn"><img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20" style="margin-right:10px"> Entrar com Google</div>', unsafe_allow_html=True)
-                
-                user = st.text_input("💎 Utilizador")
-                pw = st.text_input("🔑 Senha", type="password")
-                
-                if st.button("DESBLOQUEAR SISTEMA"):
-                    df_u = load_users()
-                    if ((df_u['usuario'] == user) & (df_u['senha'] == pw)).any():
-                        st.session_state['logado'] = True
-                        st.rerun()
-                    else: st.error("Acesso Negado")
-                
-                if st.button("✨ Criar Primeiro Acesso"):
-                    st.session_state['tela'] = 'registro'
+            if st.button("ACESSAR"):
+                df_u = load_users()
+                if ((df_u['usuario'] == u) & (df_u['senha'] == p)).any():
+                    st.session_state['logado'] = True
                     st.rerun()
+                else: st.error("Incorreto.")
+            
+            st.write("---")
+            if st.button("CRIAR PRIMEIRO ACESSO"):
+                st.session_state['tela'] = 'registro'
+                st.rerun()
 
-            else: # TELA DE REGISTRO
-                st.subheader("📝 Novo Registro")
-                new_user = st.text_input("Definir Novo Utilizador")
-                new_pw = st.text_input("Definir Senha", type="password")
-                conf_pw = st.text_input("Confirmar Senha", type="password")
-                
-                if st.button("💎 FINALIZAR CADASTRO"):
-                    if new_pw == conf_pw and new_user != "":
-                        if save_user(new_user, new_pw):
-                            st.success("Conta criada! Já pode fazer login.")
-                            st.session_state['tela'] = 'login'
-                            st.rerun()
-                        else: st.error("Utilizador já existe!")
-                    else: st.error("As senhas não coincidem.")
-                
-                if st.button("⬅️ Voltar ao Login"):
-                    st.session_state['tela'] = 'login'
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+        else: # REGISTRO
+            st.subheader("Novo Cadastro")
+            new_u = st.text_input("Novo Usuário")
+            new_p = st.text_input("Nova Senha", type="password")
+            if st.button("CONFIRMAR CADASTRO"):
+                df_u = load_users()
+                new_row = pd.DataFrame([[new_u, new_p]], columns=['usuario', 'senha'])
+                pd.concat([df_u, new_row]).to_csv(USERS_FILE, index=False)
+                st.success("Pronto!")
+                st.session_state['tela'] = 'login'
+                st.rerun()
+            if st.button("VOLTAR"):
+                st.session_state['tela'] = 'login'
+                st.rerun()
 
-# --- ÁREA DO DASHBOARD (Apenas se logado) ---
+# --- DASHBOARD ATIVO ---
 else:
-    # [O restante do código de Dashboard, Pacientes e Novo Registro permanece o mesmo aqui]
-    # (Vou resumir para não estourar o espaço, mas mantém a lógica anterior de abas)
-    st.sidebar.image("logo.png") if os.path.exists("logo.png") else st.sidebar.title("OrthoKlin")
-    menu = st.sidebar.radio("SISTEMA", ["💎 Dashboard", "📂 Pacientes", "✨ Novo Registro"])
+    df = pd.read_csv(LEADS_FILE) if os.path.exists(LEADS_FILE) else pd.DataFrame(columns=['Nome','CPF','Telefone','Origem','Status','Valor'])
     
-    if st.sidebar.button("🚀 SAIR"):
-        st.session_state['logado'] = False
-        st.rerun()
+    with st.sidebar:
+        if os.path.exists("logo.png"): st.image("logo.png")
+        elif os.path.exists("logo.jpg"): st.image("logo.jpg")
+        st.write("#")
+        menu = st.radio("Menu", ["Dashboard", "Pacientes", "Cadastro"])
+        st.write("---")
+        if st.button("SAIR"):
+            st.session_state['logado'] = False
+            st.rerun()
+
+    if menu == "Dashboard":
+        st.markdown('<p class="gradient-text" style="text-align:left; font-size:2rem;">Performance</p>', unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        if not df.empty:
+            fig1 = px.pie(df, names='Origem', hole=.6, color_discrete_sequence=['#8e44ad', '#e91e63'])
+            fig1.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white")
+            c1.plotly_chart(fig1, use_container_width=True)
+            
+            fig2 = px.bar(df.groupby('Status')['Valor'].sum().reset_index(), x='Status', y='Valor', color='Status', color_discrete_map={'Pendente':'#8e44ad', 'Agendado':'#e91e63'})
+            fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+            c2.plotly_chart(fig2, use_container_width=True)
+
+    elif menu == "Pacientes":
+        st.markdown('<p class="gradient-text" style="text-align:left; font-size:2rem;">Base de Dados</p>', unsafe_allow_html=True)
+        busca = st.text_input("Pesquisar Nome ou CPF")
         
-    # (Aqui entra a lógica das abas que já configuramos antes...)
-    st.markdown('<p class="titulo-premium">Sistema Ativo</p>', unsafe_allow_html=True)
-    st.write("Bem-vindo ao centro de comando OrthoKlin.")
+        df_f = df
+        if busca: df_f = df[df['Nome'].str.contains(busca, case=False) | df['CPF'].astype(str).str.contains(busca)]
+
+        for idx, row in df_f.iterrows():
+            st.markdown(f"""
+                <div class="lead-card">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="font-size:20px; font-weight:700;">{row['Nome']}</span>
+                        <span class="status-tag" style="background:#e91e63;">{row['Status']}</span>
+                    </div>
+                    <div style="color:#aaa; margin-top:10px;">
+                        R$ {row['Valor']:,.2f} | {row['Telefone']} | {row['Origem']}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    elif menu == "Cadastro":
+        st.markdown('<p class="gradient-text" style="text-align:left; font-size:2rem;">Novo Paciente</p>', unsafe_allow_html=True)
+        with st.form("paciente"):
+            n = st.text_input("Nome")
+            c1, c2 = st.columns(2)
+            cp = c1.text_input("CPF")
+            tl = c2.text_input("WhatsApp")
+            origem = st.selectbox("Origem", ["Instagram", "Google", "Facebook", "Indicação"])
+            status = st.selectbox("Status", ["Pendente", "Em tratamento", "Agendado"])
+            vl = st.number_input("Valor R$", min_value=0.0)
+            if st.form_submit_button("SALVAR REGISTRO"):
+                novo = {'Nome':n, 'CPF':cp, 'Telefone':tl, 'Origem':origem, 'Status':status, 'Valor':vl}
+                df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
+                df.to_csv(LEADS_FILE, index=False)
+                st.success("Salvo!")
+                st.rerun()
