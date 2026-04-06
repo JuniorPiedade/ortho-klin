@@ -2,68 +2,60 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import os
-import plotly.express as px # Biblioteca para gráficos modernos
+import plotly.express as px
 
-# --- CONFIGURAÇÃO VISUAL ULTRA-FUTURISTA (OrthoKlin) ---
-st.set_page_config(page_title="OrthoKlin Pro - Gestão Futurista", layout="wide", initial_sidebar_state="expanded")
+# --- CONFIGURAÇÃO VISUAL PREMIUM ORTHOKLIN ---
+st.set_page_config(page_title="OrthoKlin Pro - CRM", layout="wide")
 
-# CSS Avançado: Glassmorphism e Cores da Logo
+# CSS Avançado para Forçar o Degradê e Identidade Visual
 st.markdown("""
     <style>
-    /* Fundo Principal e Fontes */
-    .main { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); font-family: 'Segoe UI', sans-serif; }
+    /* Fundo Geral */
+    .main { background-color: #fcfcfc; }
     
-    /* Sidebar com Efeito Vidro (Glassmorphism) */
-    .css-1d391kg { 
-        background-color: rgba(255, 255, 255, 0.4) !important; 
-        backdrop-filter: blur(10px);
-        border-right: 1px solid rgba(255, 255, 255, 0.18);
-    }
-    
-    /* Botões Futuristas com degradê da logo */
-    .stButton>button { 
-        width: 100%; 
-        border-radius: 50px; 
-        background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%); 
-        color: white; 
-        font-weight: 600;
+    /* BOTÕES COM DEGRADÊ REAL (Roxo -> Rosa) */
+    div.stButton > button:first-child {
+        background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 50px !important;
+        padding: 0.6rem 2rem !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3) !important;
         text-transform: uppercase;
-        border: none;
-        box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
-        transition: all 0.3s ease;
     }
-    .stButton>button:hover { box-shadow: 0 6px 20px rgba(233, 30, 99, 0.5); transform: translateY(-2px); color: white; }
+    div.stButton > button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(233, 30, 99, 0.4) !important;
+    }
 
-    /* Cards de Leads Premium (Glassmorphism Light) */
+    /* CARD DE LEAD COM BORDA EM DEGRADÊ */
     .lead-card {
-        background: rgba(255, 255, 255, 0.7);
+        background: white;
         padding: 25px;
-        border-radius: 20px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        margin-bottom: 25px;
-        transition: 0.3s;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        border-left: 8px solid;
+        border-image: linear-gradient(to bottom, #8e44ad, #e91e63) 1 100%;
     }
-    .lead-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
+
+    /* Ajuste de Cor nos Textos e Ícones */
+    .stMetric label { color: #8e44ad !important; font-weight: bold !important; }
+    h1, h2, h3 { color: #2c3e50; font-family: 'Arial', sans-serif; }
     
-    /* Status Badge Colorida */
+    /* Badges de Status */
     .status-badge {
-        padding: 6px 16px;
-        border-radius: 50px;
-        font-size: 10px;
-        text-transform: uppercase;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 800;
         color: white;
-        font-weight: 700;
-        letter-spacing: 1px;
     }
-    
-    /* Metrificação na Sidebar */
-    .stMetric { background-color: rgba(255, 255, 255, 0.5); padding: 15px; border-radius: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE DADOS (Persistência) ---
+# --- FUNÇÕES DE DADOS ---
 LEADS_FILE = 'leads_orthoklin.csv'
 
 def load_leads():
@@ -71,126 +63,94 @@ def load_leads():
         df = pd.read_csv(LEADS_FILE)
         df['Data Criação'] = pd.to_datetime(df['Data Criação']).dt.date
         df['Data Agendamento'] = pd.to_datetime(df['Data Agendamento']).dt.date
-        df['Valor'] = df['Valor'].fillna(0.0) # Tratar valores nulos
         return df
     return pd.DataFrame(columns=['Nome', 'CPF', 'Telefone', 'Origem', 'Status', 'Data Criação', 'Data Agendamento', 'Valor'])
 
-# --- SISTEMA DE LOGIN (Simplificado para o exemplo) ---
-if 'logado' not in st.session_state: st.session_state['logado'] = True
+# --- APP ---
+df = load_leads()
 
-if not st.session_state['logado']:
-    st.title("🔐 Acesso OrthoKlin Pro")
-    # Lógica de login aqui (removida para teste rápido)
-else:
-    df = load_leads()
+# Sidebar
+with st.sidebar:
+    if os.path.exists("logo.png"):
+        st.image("logo.png", use_column_width=True)
+    else:
+        st.title("OrthoKlin")
     
-    # --- BARRA LATERAL FUTURISTA ---
-    with st.sidebar:
-        # Carregar a logo PNG transparente
-        if os.path.exists("logo.png"):
-            st.image("logo.png", use_column_width=True)
-        else:
-            st.title("OrthoKlin")
-            st.warning("Dica: Sobe o ficheiro 'logo.png' (transparente) para o GitHub!")
-        
-        st.divider()
-        aba = st.radio("Menu de Navegação", ["📊 Dashboard", "📝 Gestão de Leads", "➕ Cadastrar"])
-        
-        st.divider()
-        total_valor = df['Valor'].sum()
-        st.metric("Receita Potencial", f"€ {total_valor:,.2f}")
-        st.divider()
-        if st.button("Sair (Logout)"): st.session_state['logado'] = False; st.rerun()
+    st.markdown("---")
+    aba = st.radio("Navegação", ["📊 Dashboard", "📝 Lista de Leads", "➕ Novo Paciente"])
+    
+    st.markdown("---")
+    total = df['Valor'].sum()
+    st.metric("Total em Orçamentos", f"R$ {total:,.2f}")
 
-    # --- CONTEÚDO PRINCIPAL ---
+# 1. ABA DASHBOARD
+if aba == "📊 Dashboard":
+    st.header("Análise OrthoKlin")
+    c1, c2 = st.columns(2)
     
-    # 1. ABA DASHBOARD (Gráficos)
-    if aba == "📊 Dashboard":
-        st.header("Dashboard Futurista OrthoKlin")
-        
-        # Gráfico 1: Origem dos Leads (Pizza Moderno)
-        c1, c2 = st.columns(2)
-        
-        origem_counts = df['Origem'].value_counts().reset_index()
-        origem_counts.columns = ['Origem', 'Quantidade']
-        
-        fig1 = px.pie(origem_counts, values='Quantidade', names='Origem', 
-                     title='Distribuição por Origem',
-                     hole=.4, # Gráfico Donut (mais moderno)
-                     color_discrete_sequence=['#8e44ad', '#e91e63', '#3498db', '#27ae60'])
-        fig1.update_layout(showlegend=False, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    if not df.empty:
+        # Gráfico Donut (Origem)
+        fig1 = px.pie(df, names='Origem', hole=.4, title="Origem dos Pacientes",
+                     color_discrete_sequence=['#8e44ad', '#e91e63', '#3498db'])
         c1.plotly_chart(fig1, use_container_width=True)
         
-        # Gráfico 2: Valor por Status (Barras Moderno)
-        status_valor = df.groupby('Status')['Valor'].sum().reset_index()
-        fig2 = px.bar(status_valor, x='Status', y='Valor', 
-                     title='Orçamentos por Status (€)',
-                     color='Status',
-                     color_discrete_map={'Pendente': '#f39c12', 'Agendado': '#3498db', 'Em tratamento': '#27ae60'})
-        fig2.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        # Gráfico Barras (Valor por Status)
+        status_val = df.groupby('Status')['Valor'].sum().reset_index()
+        fig2 = px.bar(status_val, x='Status', y='Valor', title="Valores por Status (R$)",
+                     color='Status', color_discrete_map={'Pendente':'#f39c12', 'Agendado':'#3498db', 'Em tratamento':'#27ae60'})
         c2.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.info("Cadastre o primeiro lead para ver os gráficos!")
 
-    # 2. ABA GESTÃO DE LEADS (Visualização e Filtros)
-    elif aba == "📝 Gestão de Leads":
-        st.header("Central de Pacientes")
+# 2. ABA LISTA DE LEADS
+elif aba == "📝 Lista de Leads":
+    st.header("Gerenciamento de Pacientes")
+    busca = st.text_input("🔍 Buscar por Nome ou CPF")
+    
+    df_f = df
+    if busca:
+        df_f = df[df['Nome'].str.contains(busca, case=False) | df['CPF'].astype(str).str.contains(busca)]
+
+    for idx, row in df_f.iterrows():
+        cor = "#f39c12" if row['Status'] == "Pendente" else "#3498db" if row['Status'] == "Agendado" else "#27ae60"
         
-        col_busca, col_filtro = st.columns([3, 1])
-        busca = col_busca.text_input("🔍 Buscar por nome ou CPF...")
-        status_sel = col_filtro.selectbox("Status", ["Todos", "Pendente", "Em tratamento", "Agendado"])
-
-        # Lógica de Filtros
-        df_f = df
-        if busca:
-            df_f = df[df['Nome'].str.contains(busca, case=False) | df['CPF'].astype(str).str.contains(busca)]
-        if status_sel != "Todos":
-            df_f = df_f[df_f['Status'] == status_sel]
-
-        # Lista de Cards Premium
-        for idx, row in df_f.iterrows():
-            # Cores de Status que combinam com a logo
-            cor_status = "#f39c12" if row['Status'] == "Pendente" else "#3498db" if row['Status'] == "Agendado" else "#27ae60"
-            
-            # HTML do Card com Glassmorphism e Degradê na Borda Esquerda
-            st.markdown(f"""
-                <div class="lead-card" style="border-left: 10px solid; border-image: linear-gradient(to bottom, #8e44ad, #e91e63) 1 100%;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 22px; font-weight: 700; color: #333;">{row['Nome']}</span>
-                        <span class="status-badge" style="background-color: {cor_status};">{row['Status']}</span>
-                    </div>
-                    <div style="margin-top: 18px; color: #555; font-size: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div><b>📱 WhatsApp:</b> {row['Telefone']}</div>
-                        <div><b>CPF:</b> {row['CPF']}</div>
-                        <div><b>📂 Origem:</b> {row['Origem']}</div>
-                        <div style="color: #e91e63; font-size: 18px;"><b>💰 € {row['Valor']:,.2f}</b></div>
-                    </div>
+        st.markdown(f"""
+            <div class="lead-card">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 20px; font-weight: bold;">{row['Nome']}</span>
+                    <span class="status-badge" style="background-color: {cor};">{row['Status']}</span>
                 </div>
-            """, unsafe_allow_html=True)
-            
-            # Ações Rápidas (Botões pequenos)
-            c1, c2, _ = st.columns([1, 1, 4])
-            wa_link = f"https://api.whatsapp.com/send?phone={row['Telefone']}&text=Olá {row['Nome']}, tudo bem?"
-            c1.markdown(f"[📞 **WhatsApp**]({wa_link})")
-            if c2.button("🗑️ Apagar", key=f"btn_{idx}"):
-                df = df.drop(idx)
-                df.to_csv(LEADS_FILE, index=False)
-                st.rerun()
+                <div style="margin-top: 10px; color: #555;">
+                    <b>📱 WhatsApp:</b> {row['Telefone']} | <b>📂 Origem:</b> {row['Origem']} | <b style="color:#e91e63;">💰 R$ {row['Valor']:,.2f}</b>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        c1, c2, _ = st.columns([1, 1, 4])
+        wa_url = f"https://api.whatsapp.com/send?phone={row['Telefone']}"
+        c1.markdown(f"[💬 WhatsApp]({wa_url})")
+        if c2.button("🗑️ Excluir", key=f"del_{idx}"):
+            df = df.drop(idx)
+            df.to_csv(LEADS_FILE, index=False)
+            st.rerun()
 
-    # 3. ABA CADASTRAR (Formulário Moderno)
-    elif aba == "➕ Cadastrar":
-        st.header("Registrar Novo Paciente")
-        with st.form("form_ortho_pro"):
-            nome = st.text_input("Nome Completo do Paciente")
-            c1, c2 = st.columns(2)
-            cpf = c1.text_input("CPF (somente números)")
-            tel = c2.text_input("WhatsApp (ex: 351...)")
-            origem = st.selectbox("Como chegou?", ["Instagram", "Google", "Indicação", "Facebook"])
-            status = st.selectbox("Status Inicial", ["Pendente", "Em tratamento", "Agendado"])
-            valor = st.number_input("Valor do Orçamento (€)", min_value=0.0)
-            data_ag = st.date_input("Data do Próximo Agendamento")
-            
-            if st.form_submit_button("Guardar Paciente"):
-                novo = {'Nome': nome, 'CPF': cpf, 'Telefone': tel, 'Origem': origem, 'Status': status, 
-                        'Data Criação': datetime.now().date(), 'Data Agendamento': data_ag, 'Valor': valor}
-                df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
-                df.to_csv(LEADS_FILE, index=False)
-                st.success("Paciente registrado no sistema OrthoKlin Pro!")
+# 3. ABA NOVO PACIENTE
+elif aba == "➕ Novo Paciente":
+    st.header("Novo Cadastro")
+    with st.form("add"):
+        nome = st.text_input("Nome")
+        c1, c2 = st.columns(2)
+        cpf = c1.text_input("CPF")
+        tel = c2.text_input("WhatsApp")
+        origem = st.selectbox("Origem", ["Instagram", "Google", "Facebook", "Indicação"])
+        status = st.selectbox("Status", ["Pendente", "Em tratamento", "Agendado"])
+        valor = st.number_input("Valor (R$)", min_value=0.0)
+        data = st.date_input("Data de Agendamento")
+        
+        if st.form_submit_button("Salvar Paciente"):
+            novo = {'Nome': nome, 'CPF': cpf, 'Telefone': tel, 'Origem': origem, 'Status': status, 
+                    'Data Criação': datetime.now().date(), 'Data Agendamento': data, 'Valor': valor}
+            df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
+            df.to_csv(LEADS_FILE, index=False)
+            st.success("Salvo com sucesso!")
+            st.rerun()
