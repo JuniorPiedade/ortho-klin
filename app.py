@@ -140,4 +140,49 @@ else:
                     <div class="glass-card">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-size:18px; font-weight:800;">{row['Nome'].upper()}</span>
-                            <span class="{status_class}">{row['Status'].
+                            <span class="{status_class}">{row['Status'].upper()}</span>
+                        </div>
+                        <div style="color:#666; font-size:12px; margin-top:8px;">
+                            VALOR: R$ {row['Valor']:,.2f} | CPF: {row['CPF']} | ORIGEM: {row['Origem'].upper()}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                b_ed, b_rm, b_wa, _ = st.columns([1, 1, 2, 4])
+                if b_ed.button("EDITAR", key=f"e_{idx}"): st.session_state['edit_idx'] = idx
+                if b_rm.button("REMOVER", key=f"r_{idx}"):
+                    df = df.drop(idx)
+                    save_data(df)
+                    st.rerun()
+                
+                wa_link = f"https://api.whatsapp.com/send?phone={row['Telefone']}"
+                b_wa.markdown(f'<a href="{wa_link}" target="_blank" style="text-decoration:none;"><button style="background:#25d366; color:white; border:none; padding:10px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; text-transform:uppercase; font-size:10px;">Entrar em contato</button></a>', unsafe_allow_html=True)
+
+                if 'edit_idx' in st.session_state and st.session_state['edit_idx'] == idx:
+                    with st.form(f"f_ed_{idx}"):
+                        nv_v = st.number_input("Novo Valor R$", value=float(row['Valor']))
+                        nv_s = st.selectbox("Novo Status", ["Pendente", "Agendado", "Follow-up", "Em tratamento"], index=["Pendente", "Agendado", "Follow-up", "Em tratamento"].index(row['Status']))
+                        if st.form_submit_button("SALVAR ALTERAÇÕES"):
+                            df.at[idx, 'Valor'] = nv_v
+                            df.at[idx, 'Status'] = nv_s
+                            save_data(df)
+                            del st.session_state['edit_idx']
+                            st.rerun()
+
+    # --- ABA: NOVO ---
+    elif st.session_state['menu'] == "Novo":
+        st.markdown("<h1 class='gradient-text'>NOVO CADASTRO</h1>", unsafe_allow_html=True)
+        with st.form("form_cad"):
+            nome = st.text_input("NOME COMPLETO")
+            c1, c2 = st.columns(2)
+            cpf = c1.text_input("CPF")
+            tel = c2.text_input("WHATSAPP (COM DDD)")
+            orig = st.selectbox("ORIGEM", ["Instagram", "Google Ads", "Facebook", "Indicação"])
+            stat = st.selectbox("STATUS", ["Pendente", "Agendado", "Follow-up"])
+            valor = st.number_input("VALOR DO ORÇAMENTO R$", min_value=0.0)
+            if st.form_submit_button("REGISTRAR PACIENTE"):
+                novo = {'Nome': nome, 'CPF': cpf, 'Telefone': tel, 'Origem': orig, 'Status': stat, 'Valor': valor}
+                df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True)
+                save_data(df)
+                st.success("REGISTRADO")
+                st.rerun()
