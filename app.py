@@ -1,77 +1,79 @@
-import streamlit as st
-import pandas as pd
-import os
+# --- SISTEMA DE LOGIN MELHORADO ---
+if 'logado' not in st.session_state:
+    st.session_state['logado'] = False
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="OrthoKlin | Dashboard", layout="wide")
+if 'users' not in st.session_state:
+    st.session_state['users'] = {"admin": "ortho2026"}
 
-# --- CSS FUTURISTA (DARK MODE) ---
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
-    
-    .stApp { background: #050507; color: #ffffff; font-family: 'Inter', sans-serif; }
-    
-    /* Estilização da Sidebar para suportar a logo */
-    [data-testid="stSidebar"] {
-        background-color: rgba(0, 0, 0, 0.8) !important;
-        backdrop-filter: blur(15px);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    /* Centralizar imagem na sidebar */
-    [data-testid="stSidebarNav"] { padding-top: 20px; }
+if 'tela' not in st.session_state:
+    st.session_state['tela'] = "login"
 
-    /* Efeito de degradê nos títulos */
-    .gradient-text {
-        background: linear-gradient(90deg, #8e44ad, #e91e63);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 900;
-        text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
-# --- FUNÇÃO PARA RENDERIZAR A LOGO ---
-def render_logo():
-    if os.path.exists("logo.png"):
-        # use_container_width=True garante que ela se ajuste à largura da sidebar/coluna
-        st.image("logo.png", use_container_width=True)
-    else:
-        # Fallback elegante caso o arquivo não seja encontrado
-        st.markdown("<h2 class='gradient-text'>ORTHOKLIN</h2>", unsafe_allow_html=True)
-
-# --- SISTEMA DE LOGIN ---
-if 'logado' not in st.session_state: st.session_state['logado'] = False
-
-if not st.session_state['logado']:
+def tela_login():
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
         st.write("#")
-        render_logo() # Logo na tela de entrada
-        st.markdown("<p style='text-align:center; color:#64748b; font-size:12px; letter-spacing:2px;'>SISTEMA DE GESTÃO IA</p>", unsafe_allow_html=True)
-        
+        render_logo()
+        st.markdown("<p class='subtext' style='text-align:center;'>SISTEMA DE GESTÃO IA</p>", unsafe_allow_html=True)
+
         user = st.text_input("USUÁRIO")
         pw = st.text_input("SENHA", type="password")
-        
-        if st.button("ACESSAR PAINEL"):
-            if user == "admin" and pw == "ortho2026":
+
+        if st.button("ACESSAR"):
+            if user in st.session_state['users'] and st.session_state['users'][user] == pw:
                 st.session_state['logado'] = True
                 st.rerun()
             else:
                 st.error("Credenciais inválidas")
-else:
-    # --- SIDEBAR COM LOGO ---
-    with st.sidebar:
-        render_logo() # Logo no topo do menu lateral
-        st.write("---")
-        menu = st.radio("NAVEGAÇÃO", ["DASHBOARD", "PACIENTES", "NOVO REGISTRO"])
-        st.write("---")
-        if st.button("ENCERRAR SESSÃO"):
-            st.session_state['logado'] = False
-            st.rerun()
 
-    # --- CONTEÚDO PRINCIPAL ---
-    st.markdown(f"<h1 class='gradient-text' style='text-align:left;'>{menu}</h1>", unsafe_allow_html=True)
-    st.write(f"Bem-vindo ao centro de comando OrthoKlin.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Criar conta"):
+                st.session_state['tela'] = "cadastro"
+                st.rerun()
+        with col2:
+            if st.button("Esqueci a senha"):
+                st.session_state['tela'] = "recuperar"
+                st.rerun()
+
+
+def tela_cadastro():
+    st.markdown("<h2 class='gradient-text'>Criar Conta</h2>", unsafe_allow_html=True)
+
+    new_user = st.text_input("Novo usuário")
+    new_pw = st.text_input("Nova senha", type="password")
+
+    if st.button("Cadastrar"):
+        st.session_state['users'][new_user] = new_pw
+        st.success("Conta criada com sucesso!")
+        st.session_state['tela'] = "login"
+        st.rerun()
+
+    if st.button("Voltar"):
+        st.session_state['tela'] = "login"
+        st.rerun()
+
+
+def tela_recuperar():
+    st.markdown("<h2 class='gradient-text'>Recuperar Senha</h2>", unsafe_allow_html=True)
+
+    user = st.text_input("Digite seu usuário")
+
+    if st.button("Recuperar"):
+        if user in st.session_state['users']:
+            st.info(f"Sua senha é: {st.session_state['users'][user]}")
+        else:
+            st.error("Usuário não encontrado")
+
+    if st.button("Voltar"):
+        st.session_state['tela'] = "login"
+        st.rerun()
+
+
+if not st.session_state['logado']:
+    if st.session_state['tela'] == "login":
+        tela_login()
+    elif st.session_state['tela'] == "cadastro":
+        tela_cadastro()
+    elif st.session_state['tela'] == "recuperar":
+        tela_recuperar()
