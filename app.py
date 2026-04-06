@@ -1,61 +1,77 @@
 import streamlit as st
 import pandas as pd
 import os
-import plotly.express as px
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="OrthoKlin | Dashboard", layout="wide")
 
-# --- CSS FUTURISTA (MANTIDO) ---
+# --- CSS FUTURISTA (DARK MODE) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+    
     .stApp { background: #050507; color: #ffffff; font-family: 'Inter', sans-serif; }
-    [data-testid="stSidebar"] { background: rgba(0, 0, 0, 0.8) !important; backdrop-filter: blur(20px); }
-    .glass-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-    .kpi-value { font-size: 24px; font-weight: 900; background: linear-gradient(90deg, #8e44ad, #e91e63); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    div.stButton > button { background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%) !important; color: white !important; border: none !important; font-weight: 700 !important; text-transform: uppercase; width: 100% !important; }
+    
+    /* Estilização da Sidebar para suportar a logo */
+    [data-testid="stSidebar"] {
+        background-color: rgba(0, 0, 0, 0.8) !important;
+        backdrop-filter: blur(15px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Centralizar imagem na sidebar */
+    [data-testid="stSidebarNav"] { padding-top: 20px; }
+
+    /* Efeito de degradê nos títulos */
+    .gradient-text {
+        background: linear-gradient(90deg, #8e44ad, #e91e63);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        text-align: center;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÃO PARA EXIBIR LOGO ---
-def mostrar_logo():
-    # Lista de possíveis nomes para sua logo
-    arquivos_logo = ["Gemini_Generated_Image_17rbuh17rbuh17rb.jpg", "logo.jpg", "logo.png"]
-    for arq in arquivos_logo:
-        if os.path.exists(arq):
-            st.image(arq, use_container_width=True)
-            return
-    st.markdown("### ORTHOKLIN") # Fallback caso a imagem não seja encontrada
+# --- FUNÇÃO PARA RENDERIZAR A LOGO ---
+def render_logo():
+    if os.path.exists("logo.png"):
+        # use_container_width=True garante que ela se ajuste à largura da sidebar/coluna
+        st.image("logo.png", use_container_width=True)
+    else:
+        # Fallback elegante caso o arquivo não seja encontrado
+        st.markdown("<h2 class='gradient-text'>ORTHOKLIN</h2>", unsafe_allow_html=True)
 
-# --- LÓGICA DE LOGIN ---
+# --- SISTEMA DE LOGIN ---
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 
 if not st.session_state['logado']:
-    _, col, _ = st.columns([1, 1, 1])
+    _, col, _ = st.columns([1, 1.2, 1])
     with col:
         st.write("#")
-        mostrar_logo() # Tenta carregar a logo na tela de login
-        st.markdown("<h2 style='text-align:center; font-weight:900;'>ACESSO GERAL</h2>", unsafe_allow_html=True)
+        render_logo() # Logo na tela de entrada
+        st.markdown("<p style='text-align:center; color:#64748b; font-size:12px; letter-spacing:2px;'>SISTEMA DE GESTÃO IA</p>", unsafe_allow_html=True)
+        
         user = st.text_input("USUÁRIO")
         pw = st.text_input("SENHA", type="password")
-        if st.button("ENTRAR"):
+        
+        if st.button("ACESSAR PAINEL"):
             if user == "admin" and pw == "ortho2026":
                 st.session_state['logado'] = True
                 st.rerun()
-            else: st.error("Acesso Negado")
+            else:
+                st.error("Credenciais inválidas")
 else:
-    # --- SIDEBAR ---
+    # --- SIDEBAR COM LOGO ---
     with st.sidebar:
-        mostrar_logo() # Tenta carregar a logo no topo da barra lateral
+        render_logo() # Logo no topo do menu lateral
         st.write("---")
-        if st.button("DASHBOARD"): st.session_state['menu'] = "Dash"
-        if st.button("GESTÃO GERAL"): st.session_state['menu'] = "Gestao"
-        if st.button("NOVO CADASTRO"): st.session_state['menu'] = "Novo"
+        menu = st.radio("NAVEGAÇÃO", ["DASHBOARD", "PACIENTES", "NOVO REGISTRO"])
         st.write("---")
-        if st.button("SAIR"):
+        if st.button("ENCERRAR SESSÃO"):
             st.session_state['logado'] = False
             st.rerun()
 
-    # (O restante do código de Dashboard e Gestão continua aqui abaixo...)
-    st.markdown("<h1 style='font-weight:900;'>SISTEMA ATIVO</h1>", unsafe_allow_html=True)
+    # --- CONTEÚDO PRINCIPAL ---
+    st.markdown(f"<h1 class='gradient-text' style='text-align:left;'>{menu}</h1>", unsafe_allow_html=True)
+    st.write(f"Bem-vindo ao centro de comando OrthoKlin.")
