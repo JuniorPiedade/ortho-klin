@@ -1,117 +1,188 @@
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
-  Settings, 
-  Bell, 
-  Search, 
-  LogOut, 
-  Plus,
-  ArrowUpRight
-} from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import streamlit as st
+import pandas as pd
+import os
+import plotly.express as px
 
-const data = [
-  { name: 'Seg', valor: 400 },
-  { name: 'Ter', valor: 300 },
-  { name: 'Qua', valor: 600 },
-  { name: 'Qui', valor: 800 },
-  { name: 'Sex', valor: 500 },
-  { name: 'Sáb', valor: 900 },
-  { name: 'Dom', valor: 700 },
-];
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="OrthoKlin | AI Dashboard", layout="wide")
 
-const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+# --- CSS FUTURISTA PREMIUM (GLASSMORPHISM) ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+    
+    /* Fundo Dark Mode IA */
+    .stApp {
+        background: #050507;
+        color: #ffffff;
+        font-family: 'Inter', sans-serif;
+    }
 
-  return (
-    <div className="min-h-screen bg-[#050507] text-slate-100 font-sans">
-      {/* SIDEBAR */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-black/40 backdrop-blur-2xl border-r border-white/5 z-50 flex flex-col">
-        <div className="p-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-500 rounded-lg shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
-            <h1 className="text-xl font-bold tracking-tighter uppercase italic">
-              Ortho<span className="text-pink-500">Klin</span>
-            </h1>
-          </div>
-        </div>
+    /* Sidebar Estilizada */
+    [data-testid="stSidebar"] {
+        background: rgba(0, 0, 0, 0.6) !important;
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
 
-        <nav className="flex-1 px-4 space-y-1">
-          <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <NavItem icon={<Users size={18} />} label="Pacientes" active={activeTab === 'pacientes'} onClick={() => setActiveTab('pacientes')} />
-          <NavItem icon={<TrendingUp size={18} />} label="Faturamento" active={activeTab === 'financas'} onClick={() => setActiveTab('financas')} />
-          <NavItem icon={<Settings size={18} />} label="Configurações" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-        </nav>
+    /* Cards com Glassmorphism */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: 0.4s ease;
+    }
+    .glass-card:hover {
+        border: 1px solid #e91e63;
+        box-shadow: 0 0 20px rgba(233, 30, 99, 0.1);
+    }
 
-        <div className="p-6 border-t border-white/5">
-          <button className="flex items-center gap-3 text-slate-500 hover:text-pink-500 transition-all text-xs font-bold uppercase tracking-widest">
-            <LogOut size={16} /> Sair
-          </button>
-        </div>
-      </aside>
+    /* KPI Headers */
+    .kpi-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .kpi-value {
+        font-size: 28px;
+        font-weight: 900;
+        background: linear-gradient(90deg, #8e44ad, #e91e63);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-      {/* CONTEÚDO */}
-      <main className="ml-64 p-10">
-        <header className="flex justify-between items-center mb-12">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
-            <input type="text" placeholder="BUSCAR INTELIGÊNCIA..." className="bg-white/5 border border-white/10 rounded-md pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-purple-500 w-64 transition-all" />
-          </div>
-          
-          <div className="flex items-center gap-6">
-            <Bell size={20} className="text-slate-400 cursor-pointer" />
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-[1px]">
-              <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-bold">OK</div>
-            </div>
-          </div>
-        </header>
+    /* Botões com Glow Neon */
+    div.stButton > button {
+        background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        height: 45px !important;
+        width: 100% !important;
+        box-shadow: 0 4px 15px rgba(233, 30, 99, 0.2);
+    }
+    div.stButton > button:hover {
+        box-shadow: 0 0 25px rgba(233, 30, 99, 0.5) !important;
+        transform: translateY(-2px);
+    }
 
-        {/* CARDS KPIS */}
-        <div className="grid grid-cols-3 gap-6 mb-10">
-          <KPICard label="PENDENTES" value="R$ 12.450" color="purple" />
-          <KPICard label="CONVERSÃO" value="74%" color="pink" />
-          <KPICard label="TOTAL" value="R$ 89.200" color="white" />
-        </div>
+    /* Botão WhatsApp Neon */
+    .btn-whats {
+        display: block;
+        background: #25d366;
+        color: white !important;
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 12px;
+        text-decoration: none;
+        margin-top: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-        {/* GRÁFICO */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h3 className="text-xs font-bold tracking-[3px] text-slate-500 uppercase mb-8">Performance de Fluxo</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
-                <defs>
-                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#e91e63" stopOpacity={0.4}/>
-                    <stop offset="100%" stopColor="#e91e63" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                <XAxis dataKey="name" hide />
-                <Tooltip contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', fontSize: '12px'}} />
-                <Area type="monotone" dataKey="valor" stroke="#e91e63" strokeWidth={3} fill="url(#grad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
+# --- CARREGAMENTO DE DADOS ---
+FILE = 'leads_orthoklin.csv'
+def load_data():
+    if os.path.exists(FILE):
+        df = pd.read_csv(FILE)
+        df['Valor'] = pd.to_numeric(df['Valor'], errors='coerce').fillna(0.0)
+        return df
+    return pd.DataFrame(columns=['Nome','CPF','Telefone','Origem','Status','Valor'])
 
-// COMPONENTES AUXILIARES
-const NavItem = ({ icon, label, active, onClick }) => (
-  <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all ${active ? 'bg-gradient-to-r from-purple-600/20 to-transparent text-white border-l-2 border-purple-500' : 'text-slate-500 hover:text-slate-300'}`}>
-    {icon} <span className="text-[11px] font-bold uppercase tracking-widest">{label}</span>
-  </button>
-);
+# --- LÓGICA DE NAVEGAÇÃO ---
+if 'logado' not in st.session_state: st.session_state['logado'] = False
+if 'menu' not in st.session_state: st.session_state['menu'] = "Dashboard"
 
-const KPICard = ({ label, value, color }) => (
-  <div className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:border-purple-500/50 transition-all group">
-    <p className="text-[10px] font-bold text-slate-500 tracking-[2px] mb-2">{label}</p>
-    <h2 className={`text-2xl font-black ${color === 'pink' ? 'text-pink-500' : color === 'purple' ? 'text-purple-500' : 'text-white'}`}>{value}</h2>
-  </div>
-);
+if not st.session_state['logado']:
+    _, col, _ = st.columns([1, 1, 1])
+    with col:
+        st.write("#")
+        st.markdown("<h1 style='text-align:center; font-weight:900;'>ACESSO GERAL</h1>", unsafe_allow_html=True)
+        user = st.text_input("USUÁRIO")
+        pw = st.text_input("SENHA", type="password")
+        if st.button("ENTRAR"):
+            if user == "admin" and pw == "ortho2026":
+                st.session_state['logado'] = True
+                st.rerun()
+            else: st.error("Acesso Negado")
+else:
+    df = load_data()
+    
+    # --- SIDEBAR FIXA ---
+    with st.sidebar:
+        st.markdown("<h2 style='letter-spacing:2px;'>ORTHOKLIN</h2>", unsafe_allow_html=True)
+        st.write("---")
+        if st.button("DASHBOARD"): st.session_state['menu'] = "Dashboard"
+        if st.button("GESTÃO GERAL"): st.session_state['menu'] = "Gestão"
+        if st.button("NOVO CADASTRO"): st.session_state['menu'] = "Novo"
+        st.write("---")
+        if st.button("SAIR"):
+            st.session_state['logado'] = False
+            st.rerun()
 
-export default Dashboard;
+    # --- ABA DASHBOARD ---
+    if st.session_state['menu'] == "Dashboard":
+        st.markdown("<h1 style='font-weight:900; letter-spacing:-1px;'>PERFORMANCE IA</h1>", unsafe_allow_html=True)
+        
+        # MÉTRICAS TOP
+        c1, c2, c3 = st.columns(3)
+        with c1: st.markdown(f'<div class="glass-card"><p class="kpi-label">Faturamento Total</p><p class="kpi-value">R$ {df["Valor"].sum():,.2f}</p></div>', unsafe_allow_html=True)
+        with c2: st.markdown(f'<div class="glass-card"><p class="kpi-label">Pendentes</p><p class="kpi-value">R$ {df[df["Status"]=="Pendente"]["Valor"].sum():,.2f}</p></div>', unsafe_allow_html=True)
+        with c3: st.markdown(f'<div class="glass-card"><p class="kpi-label">Leads</p><p class="kpi-value">{len(df)}</p></div>', unsafe_allow_html=True)
+
+        if not df.empty:
+            fig = px.area(df.groupby('Origem')['Valor'].sum().reset_index(), x='Origem', y='Valor', color_discrete_sequence=['#e91e63'])
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+            st.plotly_chart(fig, use_container_width=True)
+
+    # --- ABA GESTÃO ---
+    elif st.session_state['menu'] == "Gestão":
+        st.markdown("<h1 style='font-weight:900;'>BASE DE DADOS</h1>", unsafe_allow_html=True)
+        busca = st.text_input("PESQUISAR NOME OU CPF")
+        
+        df_f = df
+        if busca: df_f = df[df['Nome'].str.contains(busca, case=False)]
+
+        for idx, row in df_f.iterrows():
+            with st.container():
+                st.markdown(f"""
+                    <div class="glass-card">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-weight:800; font-size:18px;">{row['Nome'].upper()}</span>
+                            <span style="color:#e91e63; font-weight:900;">{row['Status'].upper()}</span>
+                        </div>
+                        <p style="color:#64748b; font-size:13px; margin-top:5px;">VALOR: R$ {row['Valor']:,.2f} | ORIGEM: {row['Origem']}</p>
+                        <a href="https://api.whatsapp.com/send?phone={row['Telefone']}" target="_blank" class="btn-whats">CONTATAR PACIENTE</a>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                col_ed, col_rm, _ = st.columns([1,1,4])
+                if col_rm.button("REMOVER", key=f"rm_{idx}"):
+                    df.drop(idx).to_csv(FILE, index=False)
+                    st.rerun()
+
+    # --- ABA NOVO ---
+    elif st.session_state['menu'] == "Novo":
+        st.markdown("<h1 style='font-weight:900;'>REGISTRAR PACIENTE</h1>", unsafe_allow_html=True)
+        with st.form("cad_pro"):
+            n = st.text_input("NOME")
+            c1, c2 = st.columns(2)
+            cp = c1.text_input("CPF")
+            tl = c2.text_input("WHATSAPP")
+            or_ = st.selectbox("ORIGEM", ["Instagram", "Google", "Facebook", "Indicação"])
+            st_ = st.selectbox("STATUS", ["Pendente", "Em tratamento", "Agendado"])
+            vl = st.number_input("VALOR R$", min_value=0.0)
+            if st.form_submit_button("SALVAR INTELIGÊNCIA"):
+                novo = {'Nome': n, 'CPF': cp, 'Telefone': tl, 'Origem': or_, 'Status': st_, 'Valor': vl}
+                pd.concat([df, pd.DataFrame([novo])], ignore_index=True).to_csv(FILE, index=False)
+                st.success("REGISTRADO")
