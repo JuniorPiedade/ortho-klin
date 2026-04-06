@@ -1,28 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
+import plotly.express as px
 
 # --- CONFIG ---
 st.set_page_config(page_title="OrthoKlin | Dashboard", layout="wide")
 
-# --- CSS FUTURISTA ---
+# --- CSS ---
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+.stApp { background: radial-gradient(circle at top, #0a0a12, #050507); color: white; }
 
-.stApp { 
-    background: radial-gradient(circle at top, #0a0a12, #050507); 
-    color: #ffffff; 
-    font-family: 'Inter', sans-serif; 
-}
-
-/* SIDEBAR */
-[data-testid="stSidebar"] {
-    background: rgba(10, 10, 20, 0.7) !important;
-    backdrop-filter: blur(20px);
-}
-
-/* GRADIENTE TEXTO */
 .gradient-text {
     background: linear-gradient(90deg, #a855f7, #ec4899);
     -webkit-background-clip: text;
@@ -30,40 +18,14 @@ st.markdown("""
     font-weight: 900;
 }
 
-/* BOTÕES */
-.stButton>button {
-    background: linear-gradient(90deg, #7c3aed, #ec4899);
-    color: white;
-    border-radius: 12px;
-    transition: 0.3s;
-    box-shadow: 0 0 10px rgba(236, 72, 153, 0.4);
-}
-
-.stButton>button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.8);
-}
-
-/* CARDS */
 .card {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 20px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
-    transition: 0.3s;
+    background: rgba(255,255,255,0.05);
+    padding:20px;
+    border-radius:16px;
+    margin-bottom:10px;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-}
-
-/* SUBTEXT */
-.subtext {
-    color: #9ca3af;
-    font-size: 13px;
-}
+.subtext { color: #9ca3af; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -74,7 +36,7 @@ def render_logo():
     else:
         st.markdown("<h2 class='gradient-text'>ORTHOKLIN</h2>", unsafe_allow_html=True)
 
-# --- SESSION STATE ---
+# --- SESSION ---
 if 'logado' not in st.session_state:
     st.session_state['logado'] = False
 
@@ -84,13 +46,19 @@ if 'users' not in st.session_state:
 if 'tela' not in st.session_state:
     st.session_state['tela'] = "login"
 
+# --- LEADS ---
+if 'leads' not in st.session_state:
+    st.session_state['leads'] = pd.DataFrame([
+        {"Nome": "Ana", "CPF": "111", "Status": "Agendado", "Faturamento": 500},
+        {"Nome": "Carlos", "CPF": "222", "Status": "Pendente", "Faturamento": 0},
+        {"Nome": "João", "CPF": "333", "Status": "Follow-up", "Faturamento": 200},
+    ])
+
 # --- TELAS ---
 def tela_login():
-    _, col, _ = st.columns([1, 1.2, 1])
+    _, col, _ = st.columns([1,1.2,1])
     with col:
         render_logo()
-        st.markdown("<p class='subtext' style='text-align:center;'>SISTEMA DE GESTÃO IA</p>", unsafe_allow_html=True)
-
         user = st.text_input("Usuário")
         pw = st.text_input("Senha", type="password")
 
@@ -107,15 +75,14 @@ def tela_login():
                 st.session_state['tela'] = "cadastro"
                 st.rerun()
         with c2:
-            if st.button("Esqueci a senha"):
+            if st.button("Esqueci senha"):
                 st.session_state['tela'] = "recuperar"
                 st.rerun()
 
 def tela_cadastro():
     st.markdown("<h2 class='gradient-text'>Criar Conta</h2>", unsafe_allow_html=True)
-
     user = st.text_input("Novo usuário")
-    pw = st.text_input("Nova senha", type="password")
+    pw = st.text_input("Senha", type="password")
 
     if st.button("Cadastrar"):
         st.session_state['users'][user] = pw
@@ -129,7 +96,6 @@ def tela_cadastro():
 
 def tela_recuperar():
     st.markdown("<h2 class='gradient-text'>Recuperar Senha</h2>", unsafe_allow_html=True)
-
     user = st.text_input("Usuário")
 
     if st.button("Recuperar"):
@@ -151,53 +117,94 @@ if not st.session_state['logado']:
     elif st.session_state['tela'] == "recuperar":
         tela_recuperar()
 
-# --- APP PRINCIPAL ---
+# --- APP ---
 else:
     with st.sidebar:
         render_logo()
-        menu = st.radio("Menu", ["Dashboard", "Pacientes", "Novo Registro"])
+        menu = st.radio("Menu", ["Dashboard", "Leads", "Novo Registro"])
         if st.button("Sair"):
             st.session_state['logado'] = False
             st.rerun()
 
-    # --- DADOS MOCK ---
-    df = pd.DataFrame({
-        "Paciente": ["Ana", "Carlos", "João", "Marina"],
-        "Idade": [25, 40, 33, 29],
-        "Status": ["Ativo", "Ativo", "Inativo", "Ativo"]
-    })
-
-    total = len(df)
-    ativos = len(df[df["Status"] == "Ativo"])
-    inativos = len(df[df["Status"] == "Inativo"])
+    df = st.session_state['leads']
 
     # --- DASHBOARD ---
     if menu == "Dashboard":
         st.markdown("<h1 class='gradient-text'>Dashboard</h1>", unsafe_allow_html=True)
 
+        total = len(df)
+        faturamento = df["Faturamento"].sum()
+        follow = len(df[df["Status"] == "Follow-up"])
+
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            st.markdown(f"<div class='card'><h3>Pacientes</h3><h2>{total}</h2></div>", unsafe_allow_html=True)
-
+            st.markdown(f"<div class='card'><h3>Leads</h3><h2>{total}</h2></div>", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"<div class='card'><h3>Ativos</h3><h2>{ativos}</h2></div>", unsafe_allow_html=True)
-
+            st.markdown(f"<div class='card'><h3>Faturamento</h3><h2>R$ {faturamento}</h2></div>", unsafe_allow_html=True)
         with c3:
-            st.markdown(f"<div class='card'><h3>Inativos</h3><h2>{inativos}</h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='card'><h3>Follow-up</h3><h2>{follow}</h2></div>", unsafe_allow_html=True)
 
-        st.dataframe(df, use_container_width=True)
+        # --- GRÁFICO ---
+        fig = px.pie(df, names='Status', title='Status dos Leads')
+        st.plotly_chart(fig, use_container_width=True)
 
-    elif menu == "Pacientes":
-        st.markdown("<h1 class='gradient-text'>Pacientes</h1>", unsafe_allow_html=True)
-        st.dataframe(df, use_container_width=True)
+    # --- LEADS ---
+    elif menu == "Leads":
+        st.markdown("<h1 class='gradient-text'>Leads</h1>", unsafe_allow_html=True)
 
+        busca = st.text_input("Buscar por nome ou CPF")
+
+        df_filtrado = df.copy()
+        if busca:
+            df_filtrado = df[
+                df["Nome"].str.contains(busca, case=False) |
+                df["CPF"].str.contains(busca)
+            ]
+
+        st.dataframe(df_filtrado, use_container_width=True)
+
+        # --- EDIÇÃO ---
+        st.subheader("Editar Lead")
+        cpf_edit = st.text_input("CPF do lead")
+
+        if cpf_edit:
+            lead = df[df["CPF"] == cpf_edit]
+
+            if not lead.empty:
+                nome = st.text_input("Nome", value=lead.iloc[0]["Nome"])
+                status = st.selectbox(
+                    "Status",
+                    ["Agendado", "Pendente", "Follow-up"],
+                    index=["Agendado", "Pendente", "Follow-up"].index(lead.iloc[0]["Status"])
+                )
+                fat = st.number_input("Faturamento", value=int(lead.iloc[0]["Faturamento"]))
+
+                if st.button("Salvar Alterações"):
+                    idx = df[df["CPF"] == cpf_edit].index[0]
+                    st.session_state['leads'].at[idx, "Nome"] = nome
+                    st.session_state['leads'].at[idx, "Status"] = status
+                    st.session_state['leads'].at[idx, "Faturamento"] = fat
+                    st.success("Atualizado!")
+            else:
+                st.error("Lead não encontrado")
+
+    # --- NOVO ---
     elif menu == "Novo Registro":
-        st.markdown("<h1 class='gradient-text'>Novo Paciente</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 class='gradient-text'>Novo Lead</h1>", unsafe_allow_html=True)
 
         nome = st.text_input("Nome")
-        idade = st.number_input("Idade", 0, 120)
-        status = st.selectbox("Status", ["Ativo", "Inativo"])
+        cpf = st.text_input("CPF")
+        status = st.selectbox("Status", ["Agendado", "Pendente", "Follow-up"])
+        fat = st.number_input("Faturamento", 0)
 
         if st.button("Salvar"):
-            st.success("Paciente cadastrado (simulação)")
+            novo = pd.DataFrame([{
+                "Nome": nome,
+                "CPF": cpf,
+                "Status": status,
+                "Faturamento": fat
+            }])
+
+            st.session_state['leads'] = pd.concat([df, novo], ignore_index=True)
+            st.success("Lead cadastrado!")
