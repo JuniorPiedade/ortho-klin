@@ -8,13 +8,35 @@ import plotly.express as px
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="OrthoKlin | Business Intelligence", layout="wide")
 
-# --- CSS PERSONALIZADO (V19) ---
+# --- REGRAS DE SEGURANÇA (SENHAS DE CARGO) ---
+SENHAS_CARGO = {
+    "CRC": "CRC402001",
+    "Gestor": "GER202601",
+    "Suporte": "SU202601"
+}
+
+# --- CSS PERSONALIZADO (V26 - HEADER & ESTILO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
     .stApp { background: #050507; color: #ffffff; font-family: 'Inter', sans-serif; }
     [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid rgba(255, 255, 255, 0.05); width: 260px !important; }
     
+    /* Ajuste para o Header não cobrir o conteúdo */
+    .main .block-container { padding-top: 5rem !important; }
+
+    /* Header de Perfil Superior Direto */
+    .user-header {
+        position: fixed; top: 0; right: 0; left: 260px;
+        height: 70px; z-index: 999;
+        display: flex; justify-content: flex-end; align-items: center;
+        padding: 0 40px; background: rgba(5, 5, 7, 0.9);
+        backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .user-info-box { text-align: right; border-right: 3px solid #e91e63; padding-right: 15px; }
+    .user-name { font-weight: 800; font-size: 14px; color: #ffffff; margin: 0; }
+    .user-role { font-size: 10px; color: #a855f7; font-weight: 700; text-transform: uppercase; margin: 0; letter-spacing: 1px; }
+
     div.stButton > button {
         background: transparent !important; color: #94a3b8 !important; border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 4px !important; padding: 4px 12px !important; font-size: 10px !important; font-weight: 600 !important;
@@ -31,132 +53,167 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES AUXILIARES ---
-def render_logo():
-    path = "logo.png"
-    if os.path.exists(path):
-        try:
-            img = Image.open(path)
-            st.image(img, use_container_width=True)
-        except:
-            st.markdown("<h1 class='gradient-text' style='text-align:center;'>ORTHOKLIN</h1>", unsafe_allow_html=True)
-    else:
-        st.markdown("<h1 class='gradient-text' style='text-align:center;'>ORTHOKLIN</h1>", unsafe_allow_html=True)
+# --- BANCO DE DADOS ---
+FILE_LEADS = 'leads_orthoklin_v2.csv'
+FILE_USERS = 'usuarios_orthoklin.csv'
 
-FILE = 'leads_orthoklin_v2.csv'
 def load_data():
-    if os.path.exists(FILE):
-        df = pd.read_csv(FILE)
+    if os.path.exists(FILE_LEADS):
+        df = pd.read_csv(FILE_LEADS)
         df['Valor'] = pd.to_numeric(df['Valor'], errors='coerce').fillna(0.0)
         df['Data_Cadastro'] = pd.to_datetime(df['Data_Cadastro']).dt.date
         df['Data_Retorno'] = pd.to_datetime(df['Data_Retorno']).dt.date
         return df
     return pd.DataFrame(columns=['Nome','CPF','Telefone','Origem','Status','Valor','Data_Cadastro','Data_Retorno'])
 
-def save_data(df):
-    df.to_csv(FILE, index=False)
+def load_users():
+    if os.path.exists(FILE_USERS): return pd.read_csv(FILE_USERS)
+    # Admin padrão se o arquivo não existir
+    df = pd.DataFrame([{'nome': 'Diretoria', 'user': 'admin', 'pass': 'ortho2026', 'cargo': 'Gestor'}])
+    df.to_csv(FILE_USERS, index=False)
+    return df
 
-# --- SISTEMA DE LOGIN ---
+def save_data(df, file): df.to_csv(file, index=False)
+
+def render_logo():
+    if os.path.exists("logo.png"):
+        st.image(Image.open("logo.png"), use_container_width=True)
+    else:
+        st.markdown("<h1 class='gradient-text' style='text-align:center;'>ORTHOKLIN</h1>", unsafe_allow_html=True)
+
+# --- LOGICA DE SESSÃO ---
 if 'logado' not in st.session_state: st.session_state['logado'] = False
-if 'auth_mode' not in st.session_state: st.session_state['auth_mode'] = "login"
+if 'user_data' not in st.session_state: st.session_state['user_data'] = {}
 if 'menu' not in st.session_state: st.session_state['menu'] = "Dash"
 
+# --- TELA DE ACESSO ---
 if not st.session_state['logado']:
-    _, col, _ = st.columns([1, 1, 1])
+    _, col, _ = st.columns([1, 1.2, 1])
     with col:
-        st.write("####")
         render_logo()
-        if st.session_state['auth_mode'] == "login":
+        tab_login, tab_reg = st.tabs(["LOGIN", "CRIAR CONTA"])
+        
+        with tab_login:
             u = st.text_input("USUÁRIO")
             p = st.text_input("SENHA", type="password")
-            if st.button("ACESSAR"):
-                if (u == "admin" and p == "ortho2026") or (u == st.session_state.get('novo_u') and p == st.session_state.get('novo_p')):
+            if st.button("ACESSAR SISTEMA"):
+                users = load_users()
+                match = users[(users['user'] == u) & (users['pass'] == p)]
+                if not match.empty:
+                    st.session_state['user_data'] = match.iloc[0].to_dict()
                     st.session_state['logado'] = True
                     st.rerun()
-                else: st.error("Erro no acesso.")
-            c1, c2 = st.columns(2)
-            if c1.button("CRIAR PERFIL"): st.session_state['auth_mode'] = "cadastro"; st.rerun()
-            if c2.button("RECUPERAR"): st.session_state['auth_mode'] = "recuperar"; st.rerun()
+                else: st.error("Acesso negado.")
 
-        elif st.session_state['auth_mode'] == "cadastro":
-            nu, np = st.text_input("USUÁRIO"), st.text_input("SENHA", type="password")
-            if st.button("FINALIZAR E ENTRAR"):
-                st.session_state['novo_u'], st.session_state['novo_p'], st.session_state['logado'] = nu, np, True
-                st.rerun()
-            if st.button("VOLTAR"): st.session_state['auth_mode'] = "login"; st.rerun()
+        with tab_reg:
+            with st.form("registro"):
+                rn = st.text_input("Nome Completo")
+                ru = st.text_input("Usuário de Acesso")
+                rp = st.text_input("Senha Pessoal", type="password")
+                rc = st.selectbox("Cargo", ["CRC", "Gestor", "Suporte"])
+                rs = st.text_input(f"Senha de Autorização ({rc})", type="password")
+                if st.form_submit_button("FINALIZAR CADASTRO"):
+                    if rs == SENHAS_CARGO[rc]:
+                        users = load_users()
+                        new_user = {'nome':rn, 'user':ru, 'pass':rp, 'cargo':rc}
+                        users = pd.concat([users, pd.DataFrame([new_user])], ignore_index=True)
+                        save_data(users, FILE_USERS)
+                        st.success("Conta criada! Vá para Login.")
+                    else: st.error("Senha de cargo incorreta.")
 
 else:
+    # --- HEADER DINÂMICO ---
+    u_info = st.session_state['user_data']
+    st.markdown(f"""
+        <div class="user-header">
+            <div class="user-info-box">
+                <p class="user-name">{u_info.get('nome','').upper()}</p>
+                <p class="user-role">{u_info.get('cargo','')}</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     df = load_data()
+
+    # --- SIDEBAR ---
     with st.sidebar:
         render_logo()
         st.write("###")
         if st.button("DASHBOARD"): st.session_state['menu'] = "Dash"
         if st.button("GESTAO DE LEADS"): st.session_state['menu'] = "Gestao"
-        if st.button("BI & FINANCEIRO"): st.session_state['menu'] = "BI"
+        
+        # Acesso condicional ao BI e Configurações
+        if u_info['cargo'] in ["Gestor", "Suporte"]:
+            if st.button("BI & FINANCEIRO"): st.session_state['menu'] = "BI"
+            if st.button("CONFIGURAÇÕES / EQUIPE"): st.session_state['menu'] = "Config"
+            
         if st.button("NOVO CADASTRO"): st.session_state['menu'] = "Novo"
+        if st.button("MEU PERFIL"): st.session_state['menu'] = "Perfil"
         st.write("---")
         if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
-    # --- ABA: DASHBOARD (RESUMO RÁPIDO) ---
+    # --- CONTEÚDO ---
     if st.session_state['menu'] == "Dash":
         st.markdown("<h1 class='gradient-text'>RESUMO DIÁRIO</h1>", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
         hoje = date.today()
+        c1, c2, c3 = st.columns(3)
         c1.markdown(f'<div class="glass-card"><small>RETORNOS HOJE</small><br><b>{len(df[df["Data_Retorno"] == hoje])}</b></div>', unsafe_allow_html=True)
         c2.markdown(f'<div class="glass-card"><small>NOVOS LEADS (MÊS)</small><br><b>{len(df[df["Data_Cadastro"] >= hoje.replace(day=1)])}</b></div>', unsafe_allow_html=True)
         c3.markdown(f'<div class="glass-card"><small>STATUS AGENDADO</small><br><b style="color:#2ecc71;">{len(df[df["Status"] == "Agendado"])}</b></div>', unsafe_allow_html=True)
 
-    # --- ABA: BI & FINANCEIRO (O UPGRADE!) ---
     elif st.session_state['menu'] == "BI":
         st.markdown("<h1 class='gradient-text'>INTELIGÊNCIA FINANCEIRA</h1>", unsafe_allow_html=True)
-        
-        # Métrica de Faturamento Geral
-        total_geral = df['Valor'].sum()
-        ticket_medio = total_geral / len(df) if len(df) > 0 else 0
-        
+        total = df['Valor'].sum()
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f'<div class="glass-card"><small>FATURAMENTO GERAL</small><br><b style="font-size:24px; color:#2ecc71;">R$ {total_geral:,.2f}</b></div>', unsafe_allow_html=True)
-        c2.markdown(f'<div class="glass-card"><small>TICKET MÉDIO</small><br><b style="font-size:24px;">R$ {ticket_medio:,.2f}</b></div>', unsafe_allow_html=True)
-        c3.markdown(f'<div class="glass-card"><small>POTENCIAL EM FOLLOW-UP</small><br><b style="font-size:24px; color:#e91e63;">R$ {df[df["Status"]=="Follow-up"]["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
+        c1.markdown(f'<div class="glass-card"><small>FATURAMENTO GERAL</small><br><b style="font-size:24px; color:#2ecc71;">R$ {total:,.2f}</b></div>', unsafe_allow_html=True)
+        c2.markdown(f'<div class="glass-card"><small>TICKET MÉDIO</small><br><b style="font-size:24px;">R$ {total/len(df) if len(df)>0 else 0:,.2f}</b></div>', unsafe_allow_html=True)
+        c3.markdown(f'<div class="glass-card"><small>FOLLOW-UP ATIVO</small><br><b style="font-size:24px; color:#e91e63;">R$ {df[df["Status"]=="Follow-up"]["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
+        st.plotly_chart(px.pie(df, values='Valor', names='Origem', hole=0.6, template="plotly_dark"), use_container_width=True)
 
-        st.write("###")
-        col_graf1, col_graf2 = st.columns(2)
-        
-        with col_graf1:
-            st.markdown("<small>DISTRIBUIÇÃO POR CANAL (R$)</small>", unsafe_allow_html=True)
-            fig_origem = px.pie(df, values='Valor', names='Origem', hole=0.6, color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_origem.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", showlegend=True)
-            st.plotly_chart(fig_origem, use_container_width=True)
-            
-        with col_graf2:
-            st.markdown("<small>EVOLUÇÃO MENSAL DE ORÇAMENTOS</small>", unsafe_allow_html=True)
-            df['Mes_Ano'] = pd.to_datetime(df['Data_Cadastro']).dt.strftime('%m/%Y')
-            evolucao = df.groupby('Mes_Ano')['Valor'].sum().reset_index()
-            fig_evol = px.line(evolucao, x='Mes_Ano', y='Valor', markers=True)
-            fig_evol.update_traces(line_color='#e91e63')
-            fig_evol.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
-            st.plotly_chart(fig_evol, use_container_width=True)
-
-    # --- ABA: GESTÃO ---
     elif st.session_state['menu'] == "Gestao":
-        st.markdown("<h1 class='gradient-text'>GESTÃO DE LEADS</h1>", unsafe_allow_html=True)
-        busca = st.text_input("BUSCAR NOME OU CPF")
-        df_f = df[df['Nome'].str.contains(busca, case=False) | df['CPF'].str.contains(busca)] if busca else df
-        for idx, row in df_f.sort_values(by='Data_Retorno').iterrows():
-            tag = "tag-followup" if row['Status'] == "Follow-up" else "tag-agendado" if row['Status'] == "Agendado" else "tag-pendente"
+        st.markdown("<h1 class='gradient-text'>GESTOR DE PACIENTES</h1>", unsafe_allow_html=True)
+        busca = st.text_input("BUSCAR POR NOME")
+        df_f = df[df['Nome'].str.contains(busca, case=False)] if busca else df
+        for idx, row in df_f.iterrows():
             with st.container():
-                st.markdown(f'<div class="glass-card"><div style="display:flex; justify-content:space-between;"><b>{row["Nome"].upper()}</b><span class="{tag}">{row["Status"]}</span></div><small>CPF: {row["CPF"]} | Valor: R$ {row["Valor"]:,.2f} | Retorno: {row["Data_Retorno"]}</small></div>', unsafe_allow_html=True)
-                b1, b2, _ = st.columns([1,1,4])
-                if b1.button("APAGAR", key=f"d_{idx}"): df=df.drop(idx); save_data(df); st.rerun()
-                wa = f"https://api.whatsapp.com/send?phone={row['Telefone']}"; b2.markdown(f'<a href="{wa}" target="_blank"><button style="background:#25d366; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:10px; width:100%;">WHATSAPP</button></a>', unsafe_allow_html=True)
+                st.markdown(f'<div class="glass-card"><b>{row["Nome"].upper()}</b> | Status: {row["Status"]}<br><small>WhatsApp: {row["Telefone"]} | Valor: R$ {row["Valor"]:,.2f}</small></div>', unsafe_allow_html=True)
+                if u_info['cargo'] in ["Gestor", "Suporte"]:
+                    if st.button("APAGAR LEAD", key=f"del_{idx}"):
+                        df = df.drop(idx); save_data(df, FILE_LEADS); st.rerun()
 
-    # --- ABA: NOVO ---
     elif st.session_state['menu'] == "Novo":
         st.markdown("<h1 class='gradient-text'>NOVO CADASTRO</h1>", unsafe_allow_html=True)
-        with st.form("add"):
+        with st.form("novo_lead"):
             n, c, t = st.text_input("NOME"), st.text_input("CPF"), st.text_input("WHATSAPP")
-            o, s, v = st.selectbox("ORIGEM", ["Instagram", "Google Ads", "Indicação"]), st.selectbox("STATUS", ["Pendente", "Follow-up"]), st.number_input("VALOR", min_value=0.0)
-            dr = st.date_input("DATA DE RETORNO")
+            o, s, v = st.selectbox("ORIGEM", ["Instagram", "Google Ads", "Indicação"]), st.selectbox("STATUS", ["Pendente", "Follow-up"]), st.number_input("VALOR")
+            dr = st.date_input("RETORNO")
             if st.form_submit_button("SALVAR"):
                 new = {'Nome':n, 'CPF':c, 'Telefone':t, 'Origem':o, 'Status':s, 'Valor':v, 'Data_Cadastro':date.today(), 'Data_Retorno':dr}
-                df = pd.concat([df, pd.DataFrame([new])], ignore_index=True); save_data(df); st.rerun()
+                df = pd.concat([df, pd.DataFrame([new])], ignore_index=True); save_data(df, FILE_LEADS); st.rerun()
+
+    elif st.session_state['menu'] == "Perfil":
+        st.markdown("<h1 class='gradient-text'>MEU PERFIL</h1>", unsafe_allow_html=True)
+        with st.form("edit_p"):
+            en = st.text_input("Nome", value=u_info['nome'])
+            eu = st.text_input("Usuário", value=u_info['user'])
+            ep = st.text_input("Nova Senha", value=u_info['pass'], type="password")
+            ec = st.selectbox("Cargo", ["CRC", "Gestor", "Suporte"], index=["CRC", "Gestor", "Suporte"].index(u_info['cargo']))
+            es = st.text_input("Confirme a Senha de Autorização do Cargo", type="password")
+            if st.form_submit_button("ATUALIZAR MEUS DADOS"):
+                if es == SENHAS_CARGO[ec]:
+                    users = load_users()
+                    users.loc[users['user'] == u_info['user'], ['nome', 'user', 'pass', 'cargo']] = [en, eu, ep, ec]
+                    save_data(users, FILE_USERS)
+                    st.session_state['user_data'] = {'nome':en, 'user':eu, 'pass':ep, 'cargo':ec}
+                    st.success("Dados atualizados!"); st.rerun()
+                else: st.error("Senha de autorização de cargo inválida.")
+
+    elif st.session_state['menu'] == "Config":
+        st.markdown("<h1 class='gradient-text'>EQUIPE E ACESSOS</h1>", unsafe_allow_html=True)
+        udf = load_users()
+        for i, r in udf.iterrows():
+            with st.container():
+                st.markdown(f'<div class="glass-card"><b>{r["nome"]}</b> - {r["cargo"]} (Login: {r["user"]})</div>', unsafe_allow_html=True)
+                if r['user'] != 'admin' and r['user'] != u_info['user']:
+                    if st.button("REMOVER MEMBRO", key=f"rem_{i}"):
+                        udf = udf.drop(i); save_data(udf, FILE_USERS); st.rerun()
