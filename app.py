@@ -6,18 +6,15 @@ from PIL import Image
 import plotly.express as px
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="OrthoKlin | Gestão de Leads", layout="wide")
+st.set_page_config(page_title="OrthoKlin | Business Intelligence", layout="wide")
 
-# --- CSS PERSONALIZADO (DESIGN PREMIUM & MINIMALISTA) ---
+# --- CSS PERSONALIZADO (V19) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
     .stApp { background: #050507; color: #ffffff; font-family: 'Inter', sans-serif; }
-    
-    /* Sidebar */
     [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid rgba(255, 255, 255, 0.05); width: 260px !important; }
-
-    /* Botões Minimalistas da Sidebar */
+    
     div.stButton > button {
         background: transparent !important; color: #94a3b8 !important; border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 4px !important; padding: 4px 12px !important; font-size: 10px !important; font-weight: 600 !important;
@@ -25,19 +22,16 @@ st.markdown("""
     }
     div.stButton > button:hover { background: linear-gradient(90deg, #8e44ad 0%, #e91e63 100%) !important; color: white !important; border: none !important; transform: translateX(3px); }
 
-    /* Tags de Status */
     .tag-agendado { background: #2ecc71; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
     .tag-pendente { background: #f1c40f; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
     .tag-followup { background: #e91e63; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
-    .data-alerta { color: #ff4b4b; font-weight: 700; }
     
-    /* Cards */
     .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
     .gradient-text { background: linear-gradient(90deg, #a855f7, #e91e63); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÃO DE RENDERIZAÇÃO DA LOGO ---
+# --- FUNÇÕES AUXILIARES ---
 def render_logo():
     path = "logo.png"
     if os.path.exists(path):
@@ -49,7 +43,6 @@ def render_logo():
     else:
         st.markdown("<h1 class='gradient-text' style='text-align:center;'>ORTHOKLIN</h1>", unsafe_allow_html=True)
 
-# --- BANCO DE DADOS (CSV) ---
 FILE = 'leads_orthoklin_v2.csv'
 def load_data():
     if os.path.exists(FILE):
@@ -63,52 +56,35 @@ def load_data():
 def save_data(df):
     df.to_csv(FILE, index=False)
 
-# --- ESTADOS DO SISTEMA ---
+# --- SISTEMA DE LOGIN ---
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 if 'auth_mode' not in st.session_state: st.session_state['auth_mode'] = "login"
 if 'menu' not in st.session_state: st.session_state['menu'] = "Dash"
 
-# --- TELA DE ACESSO ---
 if not st.session_state['logado']:
     _, col, _ = st.columns([1, 1, 1])
     with col:
         st.write("####")
         render_logo()
-        
         if st.session_state['auth_mode'] == "login":
-            u = st.text_input("USUÁRIO", placeholder="admin")
-            p = st.text_input("SENHA", type="password", placeholder="••••••")
+            u = st.text_input("USUÁRIO")
+            p = st.text_input("SENHA", type="password")
             if st.button("ACESSAR"):
-                # Verifica admin ou novo usuário criado na sessão
                 if (u == "admin" and p == "ortho2026") or (u == st.session_state.get('novo_u') and p == st.session_state.get('novo_p')):
                     st.session_state['logado'] = True
                     st.rerun()
-                else: st.error("Credenciais Inválidas.")
-            
+                else: st.error("Erro no acesso.")
             c1, c2 = st.columns(2)
             if c1.button("CRIAR PERFIL"): st.session_state['auth_mode'] = "cadastro"; st.rerun()
-            if c2.button("PERDI A SENHA"): st.session_state['auth_mode'] = "recuperar"; st.rerun()
+            if c2.button("RECUPERAR"): st.session_state['auth_mode'] = "recuperar"; st.rerun()
 
         elif st.session_state['auth_mode'] == "cadastro":
-            st.markdown("<h3 style='text-align:center;'>NOVO ACESSO</h3>", unsafe_allow_html=True)
-            nu = st.text_input("USUÁRIO")
-            np = st.text_input("SENHA", type="password")
-            npc = st.text_input("CONFIRME A SENHA", type="password")
+            nu, np = st.text_input("USUÁRIO"), st.text_input("SENHA", type="password")
             if st.button("FINALIZAR E ENTRAR"):
-                if nu and np == npc and len(np) > 3:
-                    st.session_state['novo_u'], st.session_state['novo_p'] = nu, np
-                    st.session_state['logado'] = True
-                    st.rerun()
-                else: st.error("Erro nos dados.")
+                st.session_state['novo_u'], st.session_state['novo_p'], st.session_state['logado'] = nu, np, True
+                st.rerun()
             if st.button("VOLTAR"): st.session_state['auth_mode'] = "login"; st.rerun()
 
-        elif st.session_state['auth_mode'] == "recuperar":
-            st.markdown("<h3 style='text-align:center;'>RECUPERAR</h3>", unsafe_allow_html=True)
-            st.text_input("E-MAIL")
-            if st.button("ENVIAR"): st.info("Instruções enviadas.")
-            if st.button("VOLTAR"): st.session_state['auth_mode'] = "login"; st.rerun()
-
-# --- ÁREA INTERNA ---
 else:
     df = load_data()
     with st.sidebar:
@@ -116,82 +92,74 @@ else:
         st.write("###")
         if st.button("DASHBOARD"): st.session_state['menu'] = "Dash"
         if st.button("GESTAO DE LEADS"): st.session_state['menu'] = "Gestao"
+        if st.button("BI & FINANCEIRO"): st.session_state['menu'] = "BI"
         if st.button("NOVO CADASTRO"): st.session_state['menu'] = "Novo"
         st.write("---")
-        if st.button("SAIR"): 
-            st.session_state['logado'] = False
-            st.session_state['auth_mode'] = "login"
-            st.rerun()
+        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
-    # 📊 DASHBOARD COMPLETO
+    # --- ABA: DASHBOARD (RESUMO RÁPIDO) ---
     if st.session_state['menu'] == "Dash":
-        st.markdown("<h1 class='gradient-text'>DESEMPENHO</h1>", unsafe_allow_html=True)
-        col_f1, col_f2 = st.columns(2)
-        d_ini = col_f1.date_input("INÍCIO", date.today().replace(day=1))
-        d_fim = col_f2.date_input("FIM", date.today())
+        st.markdown("<h1 class='gradient-text'>RESUMO DIÁRIO</h1>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        hoje = date.today()
+        c1.markdown(f'<div class="glass-card"><small>RETORNOS HOJE</small><br><b>{len(df[df["Data_Retorno"] == hoje])}</b></div>', unsafe_allow_html=True)
+        c2.markdown(f'<div class="glass-card"><small>NOVOS LEADS (MÊS)</small><br><b>{len(df[df["Data_Cadastro"] >= hoje.replace(day=1)])}</b></div>', unsafe_allow_html=True)
+        c3.markdown(f'<div class="glass-card"><small>STATUS AGENDADO</small><br><b style="color:#2ecc71;">{len(df[df["Status"] == "Agendado"])}</b></div>', unsafe_allow_html=True)
+
+    # --- ABA: BI & FINANCEIRO (O UPGRADE!) ---
+    elif st.session_state['menu'] == "BI":
+        st.markdown("<h1 class='gradient-text'>INTELIGÊNCIA FINANCEIRA</h1>", unsafe_allow_html=True)
         
-        df_p = df[(df['Data_Cadastro'] >= d_ini) & (df['Data_Cadastro'] <= d_fim)]
+        # Métrica de Faturamento Geral
+        total_geral = df['Valor'].sum()
+        ticket_medio = total_geral / len(df) if len(df) > 0 else 0
         
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f'<div class="glass-card"><small>VALOR PERÍODO</small><br><b>R$ {df_p["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
-        c2.markdown(f'<div class="glass-card"><small>NOVOS LEADS</small><br><b>{len(df_p)}</b></div>', unsafe_allow_html=True)
-        c3.markdown(f'<div class="glass-card"><small>RETORNOS HOJE</small><br><b>{len(df[df["Data_Retorno"] == date.today()])}</b></div>', unsafe_allow_html=True)
+        c1.markdown(f'<div class="glass-card"><small>FATURAMENTO GERAL</small><br><b style="font-size:24px; color:#2ecc71;">R$ {total_geral:,.2f}</b></div>', unsafe_allow_html=True)
+        c2.markdown(f'<div class="glass-card"><small>TICKET MÉDIO</small><br><b style="font-size:24px;">R$ {ticket_medio:,.2f}</b></div>', unsafe_allow_html=True)
+        c3.markdown(f'<div class="glass-card"><small>POTENCIAL EM FOLLOW-UP</small><br><b style="font-size:24px; color:#e91e63;">R$ {df[df["Status"]=="Follow-up"]["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
 
-        if not df_p.empty:
-            fig = px.bar(df_p.groupby('Data_Cadastro')['Valor'].sum().reset_index(), x='Data_Cadastro', y='Valor')
-            fig.update_traces(marker_color='#e91e63')
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
-            st.plotly_chart(fig, use_container_width=True)
+        st.write("###")
+        col_graf1, col_graf2 = st.columns(2)
+        
+        with col_graf1:
+            st.markdown("<small>DISTRIBUIÇÃO POR CANAL (R$)</small>", unsafe_allow_html=True)
+            fig_origem = px.pie(df, values='Valor', names='Origem', hole=0.6, color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_origem.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", showlegend=True)
+            st.plotly_chart(fig_origem, use_container_width=True)
+            
+        with col_graf2:
+            st.markdown("<small>EVOLUÇÃO MENSAL DE ORÇAMENTOS</small>", unsafe_allow_html=True)
+            df['Mes_Ano'] = pd.to_datetime(df['Data_Cadastro']).dt.strftime('%m/%Y')
+            evolucao = df.groupby('Mes_Ano')['Valor'].sum().reset_index()
+            fig_evol = px.line(evolucao, x='Mes_Ano', y='Valor', markers=True)
+            fig_evol.update_traces(line_color='#e91e63')
+            fig_evol.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+            st.plotly_chart(fig_evol, use_container_width=True)
 
-    # 👥 GESTÃO COM DADOS COMPLETOS
+    # --- ABA: GESTÃO ---
     elif st.session_state['menu'] == "Gestao":
-        st.markdown("<h1 class='gradient-text'>GESTÃO</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 class='gradient-text'>GESTÃO DE LEADS</h1>", unsafe_allow_html=True)
         busca = st.text_input("BUSCAR NOME OU CPF")
         df_f = df[df['Nome'].str.contains(busca, case=False) | df['CPF'].str.contains(busca)] if busca else df
-        
         for idx, row in df_f.sort_values(by='Data_Retorno').iterrows():
-            hoje = date.today()
             tag = "tag-followup" if row['Status'] == "Follow-up" else "tag-agendado" if row['Status'] == "Agendado" else "tag-pendente"
-            cor_data = "data-alerta" if row['Data_Retorno'] <= hoje and row['Status'] != 'Em tratamento' else ""
-            
             with st.container():
-                st.markdown(f"""
-                    <div class="glass-card">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-weight:600;">{row['Nome'].upper()}</span>
-                            <span class="{tag}">{row['Status']}</span>
-                        </div>
-                        <div style="font-size:11px; margin-top:10px; color:#64748b;">
-                            CPF: {row['CPF']} | CANAL: {row['Origem']} | <span class="{cor_data}">RETORNO: {row['Data_Retorno'].strftime('%d/%m/%Y')}</span>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                b1, b2, b3, _ = st.columns([1, 1, 2, 4])
-                if b1.button("EDITAR", key=f"e_{idx}"): st.session_state['edit_idx'] = idx
-                if b2.button("APAGAR", key=f"r_{idx}"): df = df.drop(idx); save_data(df); st.rerun()
-                wa = f"https://api.whatsapp.com/send?phone={row['Telefone']}"
-                b3.markdown(f'<a href="{wa}" target="_blank"><button style="background:#25d366; color:white; border:none; padding:8px; border-radius:6px; width:100%; font-weight:700; cursor:pointer; font-size:10px; text-transform:uppercase;">WhatsApp</button></a>', unsafe_allow_html=True)
+                st.markdown(f'<div class="glass-card"><div style="display:flex; justify-content:space-between;"><b>{row["Nome"].upper()}</b><span class="{tag}">{row["Status"]}</span></div><small>CPF: {row["CPF"]} | Valor: R$ {row["Valor"]:,.2f} | Retorno: {row["Data_Retorno"]}</small></div>', unsafe_allow_html=True)
+                b1, b2, _ = st.columns([1,1,4])
+                if b1.button("APAGAR", key=f"d_{idx}"): df=df.drop(idx); save_data(df); st.rerun()
+                wa = f"https://api.whatsapp.com/send?phone={row['Telefone']}"; b2.markdown(f'<a href="{wa}" target="_blank"><button style="background:#25d366; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:10px; width:100%;">WHATSAPP</button></a>', unsafe_allow_html=True)
 
-                if 'edit_idx' in st.session_state and st.session_state['edit_idx'] == idx:
-                    with st.form(f"ed_{idx}"):
-                        nv_s = st.selectbox("Status", ["Pendente", "Agendado", "Follow-up", "Em tratamento"])
-                        nv_v = st.number_input("Valor", value=float(row['Valor']))
-                        nv_r = st.date_input("Data Retorno", value=row['Data_Retorno'])
-                        if st.form_submit_button("SALVAR"):
-                            df.at[idx, 'Status'], df.at[idx, 'Valor'], df.at[idx, 'Data_Retorno'] = nv_s, nv_v, nv_r
-                            save_data(df); del st.session_state['edit_idx']; st.rerun()
-
-    # ➕ NOVO CADASTRO COMPLETO
+    # --- ABA: NOVO ---
     elif st.session_state['menu'] == "Novo":
-        st.markdown("<h1 class='gradient-text'>CADASTRO</h1>", unsafe_allow_html=True)
-        with st.form("cad"):
-            nome = st.text_input("NOME COMPLETO")
-            c1, c2 = st.columns(2); cpf = c1.text_input("CPF"); tel = c2.text_input("TELEFONE (DDD + NÚMERO)")
-            c3, c4 = st.columns(2); orig = c3.selectbox("ORIGEM", ["Instagram", "Google Ads", "Facebook", "Indicação"]); stat = c4.selectbox("STATUS", ["Pendente", "Follow-up"])
-            val = st.number_input("VALOR ORÇAMENTO", min_value=0.0)
-            ret = st.date_input("DATA DE RETORNO", value=date.today())
-            if st.form_submit_button("REGISTRAR PACIENTE"):
+        st.markdown("<h1 class='gradient-text'>NOVO CADASTRO</h1>", unsafe_allow_html=True)
+        with st.form("add"):
+            n, c, t = st.text_input("NOME"), st.text_input("CPF"), st.text_input("WHATSAPP")
+            o, s, v = st.selectbox("ORIGEM", ["Instagram", "Google Ads", "Indicação"]), st.selectbox("STATUS", ["Pendente", "Follow-up"]), st.number_input("VALOR", min_value=0.0)
+            dr = st.date_input("DATA DE RETORNO")
+            if st.form_submit_button("SALVAR"):
+                new = {'Nome':n, 'CPF':c, 'Telefone':t, 'Origem':o, 'Status':s, 'Valor':v, 'Data_Cadastro':date.today(), 'Data_Retorno':dr}
+                df = pd.concat([df, pd.DataFrame([new])], ignore_index=True); save_data(df); st.rerun()
                 if nome and cpf and tel:
                     novo = {'Nome': nome, 'CPF': cpf, 'Telefone': tel, 'Origem': orig, 'Status': stat, 'Valor': val, 'Data_Cadastro': date.today(), 'Data_Retorno': ret}
                     df = pd.concat([df, pd.DataFrame([novo])], ignore_index=True); save_data(df); st.success("Registrado!"); st.rerun()
