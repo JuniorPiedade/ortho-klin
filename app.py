@@ -8,7 +8,7 @@ import plotly.express as px
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="OrthoKlin | Enterprise BI", layout="wide", initial_sidebar_state="expanded")
 
-# --- CSS PREMIUN (V22) ---
+# --- CSS PREMIUN (V23) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
@@ -36,7 +36,6 @@ st.markdown("""
     .tag-agendado { background: #2ecc71; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
     .tag-pendente { background: #f1c40f; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
     .tag-followup { background: #e91e63; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px; text-transform: uppercase; }
-    .data-alerta { color: #ff4b4b; font-weight: 700; }
     
     .glass-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
     .gradient-text { background: linear-gradient(90deg, #a855f7, #e91e63); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
@@ -59,7 +58,6 @@ def load_leads():
 def load_users():
     if os.path.exists(USER_FILE):
         return pd.read_csv(USER_FILE)
-    # Garante a criação do arquivo com colunas corretas
     df = pd.DataFrame([{'nome': 'Diretoria Ortho', 'user': 'admin', 'pass': 'ortho2026', 'cargo': 'Gestor'}])
     df.to_csv(USER_FILE, index=False)
     return df
@@ -86,37 +84,37 @@ if not st.session_state['logado']:
         u = st.text_input("USUÁRIO")
         p = st.text_input("SENHA", type="password")
         
-        col_btn1, col_btn2 = st.columns(2)
-        if col_btn1.button("ACESSAR"):
-            users_df = load_users()
-            match = users_df[(users_df['user'] == u) & (users_df['pass'] == p)]
+        c_b1, c_b2 = st.columns(2)
+        if c_b1.button("ACESSAR"):
+            u_df = load_users()
+            match = u_df[(u_df['user'] == u) & (u_df['pass'] == p)]
             if not match.empty:
                 st.session_state['user_data'] = match.iloc[0].to_dict()
                 st.session_state['logado'] = True
                 st.rerun()
             else: st.error("Acesso negado.")
 
-        if col_btn2.button("CRIAR ACESSO"):
+        if c_b2.button("CRIAR ACESSO"):
             st.session_state['create_mode'] = True
 
         if st.session_state.get('create_mode'):
             with st.form("new_acc"):
-                new_n = st.text_input("Nome Completo")
-                new_u = st.text_input("Novo Usuário")
-                new_p = st.text_input("Senha", type="password")
+                n_nome = st.text_input("Nome Completo")
+                n_user = st.text_input("Novo Usuário")
+                n_pass = st.text_input("Senha", type="password")
                 if st.form_submit_button("FINALIZAR E ENTRAR"):
                     u_df = load_users()
-                    new_entry = {'nome': new_n, 'user': new_u, 'pass': new_p, 'cargo': 'CRC'}
-                    u_df = pd.concat([u_df, pd.DataFrame([new_entry])], ignore_index=True)
+                    entry = {'nome': n_nome, 'user': n_user, 'pass': n_pass, 'cargo': 'CRC'}
+                    u_df = pd.concat([u_df, pd.DataFrame([entry])], ignore_index=True)
                     save_data(u_df, USER_FILE)
-                    st.session_state['user_data'] = new_entry
+                    st.session_state['user_data'] = entry
                     st.session_state['logado'] = True
                     st.rerun()
 else:
-    # --- HEADER DINÂMICO (COM TRAVA DE SEGURANÇA) ---
+    # --- HEADER DINÂMICO ---
     u_info = st.session_state.get('user_data', {})
-    u_nome = u_info.get('nome', 'Usuário').upper()
-    u_cargo = u_info.get('cargo', 'Membro')
+    u_nome = u_info.get('nome', 'USUÁRIO').upper()
+    u_cargo = u_info.get('cargo', 'MEMBRO')
 
     st.markdown(f"""
         <div class="user-header">
@@ -135,6 +133,7 @@ else:
         if st.button("GESTAO DE LEADS"): st.session_state['menu'] = "Gestao"
         if st.button("NOVO CADASTRO"): st.session_state['menu'] = "Novo"
         if u_cargo == "Gestor":
+            st.write("---")
             if st.button("BI FINANCEIRO"): st.session_state['menu'] = "BI"
             if st.button("EQUIPE / CARGOS"): st.session_state['menu'] = "Config"
         st.write("---")
@@ -142,48 +141,67 @@ else:
             st.session_state['logado'] = False
             st.rerun()
 
-    # --- CONTEÚDO ---
+    # --- NAVEGAÇÃO ---
     if st.session_state['menu'] == "Dash":
-        st.markdown("<h1 class='gradient-text'>OVERVIEW</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 class='gradient-text'>DASHBOARD</h1>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         c1.markdown(f'<div class="glass-card"><small>TOTAL DE LEADS</small><br><b>{len(df_leads)}</b></div>', unsafe_allow_html=True)
         c2.markdown(f'<div class="glass-card"><small>RETORNOS HOJE</small><br><b>{len(df_leads[df_leads["Data_Retorno"] == date.today()])}</b></div>', unsafe_allow_html=True)
-        c3.markdown(f'<div class="glass-card"><small>VALOR EM ABERTO</small><br><b>R$ {df_leads[df_leads["Status"] != "Em tratamento"]["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
+        c3.markdown(f'<div class="glass-card"><small>FATURAMENTO TOTAL</small><br><b>R$ {df_leads["Valor"].sum():,.2f}</b></div>', unsafe_allow_html=True)
 
     elif st.session_state['menu'] == "Gestao":
-        st.markdown("<h1 class='gradient-text'>GESTÃO</h1>", unsafe_allow_html=True)
-        busca = st.text_input("BUSCAR PACIENTE")
+        st.markdown("<h1 class='gradient-text'>GESTÃO DE PACIENTES</h1>", unsafe_allow_html=True)
+        busca = st.text_input("PESQUISAR NOME")
         df_f = df_leads[df_leads['Nome'].str.contains(busca, case=False)] if busca else df_leads
         for idx, row in df_f.sort_values(by='Data_Retorno').iterrows():
+            tag = "tag-agendado" if row['Status'] == "Agendado" else "tag-pendente"
             with st.container():
-                st.markdown(f'<div class="glass-card"><b>{row["Nome"].upper()}</b> | {row["Status"]}<br><small>Retorno: {row["Data_Retorno"]}</small></div>', unsafe_allow_html=True)
-                if st.button("APAGAR", key=f"del_{idx}"):
+                st.markdown(f'<div class="glass-card"><div style="display:flex; justify-content:space-between;"><b>{row["Nome"].upper()}</b><span class="{tag}">{row["Status"]}</span></div><small>Retorno: {row["Data_Retorno"]}</small></div>', unsafe_allow_html=True)
+                if st.button("EXCLUIR", key=f"dl_{idx}"):
                     df_leads = df_leads.drop(idx); save_data(df_leads, LEAD_FILE); st.rerun()
 
     elif st.session_state['menu'] == "Novo":
-        st.markdown("<h1 class='gradient-text'>CADASTRO</h1>", unsafe_allow_html=True)
-        with st.form("add_lead"):
-            n = st.text_input("Nome")
-            c = st.text_input("CPF")
-            t = st.text_input("Telefone")
-            v = st.number_input("Valor", min_value=0.0)
-            dr = st.date_input("Retorno")
-            if st.form_submit_button("SALVAR"):
-                new = {'Nome':n,'CPF':c,'Telefone':t,'Origem':'Instagram','Status':'Pendente','Valor':v,'Data_Cadastro':date.today(),'Data_Retorno':dr}
+        st.markdown("<h1 class='gradient-text'>NOVO CADASTRO</h1>", unsafe_allow_html=True)
+        with st.form("cad_l"):
+            n, cp, tl = st.text_input("Nome"), st.text_input("CPF"), st.text_input("Telefone")
+            v, dr = st.number_input("Valor"), st.date_input("Retorno")
+            if st.form_submit_button("REGISTRAR"):
+                new = {'Nome':n,'CPF':cp,'Telefone':tl,'Origem':'Manual','Status':'Pendente','Valor':v,'Data_Cadastro':date.today(),'Data_Retorno':dr}
                 df_leads = pd.concat([df_leads, pd.DataFrame([new])], ignore_index=True)
-                save_data(df_leads, LEAD_FILE); st.success("OK!"); st.rerun()
+                save_data(df_leads, LEAD_FILE); st.rerun()
 
     elif st.session_state['menu'] == "BI":
-        st.markdown("<h1 class='gradient-text'>BI & FINANCEIRO</h1>", unsafe_allow_html=True)
-        st.metric("Faturamento Geral", f"R$ {df_leads['Valor'].sum():,.2f}")
-        fig = px.pie(df_leads, values='Valor', names='Status', hole=0.5)
-        st.plotly_chart(fig)
+        st.markdown("<h1 class='gradient-text'>ANÁLISE DE DADOS</h1>", unsafe_allow_html=True)
+        st.write("Faturamento por Status")
+        fig = px.pie(df_leads, values='Valor', names='Status', hole=0.6, color_discrete_sequence=px.colors.qualitative.Pastel)
+        st.plotly_chart(fig, use_container_width=True)
 
     elif st.session_state['menu'] == "Config":
-        st.markdown("<h1 class='gradient-text'>EQUIPE</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 class='gradient-text'>CONTROLE DE EQUIPE</h1>", unsafe_allow_html=True)
         u_df = load_users()
-        st.dataframe(u_df[['nome', 'user', 'cargo']])
-                    if st.session_state.get(f"reset_{i}"):
-                        ns = st.text_input("Nova Senha", key=f"ns_{i}")
-                        if st.button("SALVAR SENHA", key=f"btn_{i}"):
-                            u_df.at[i, 'pass'] = ns; save_data(u_df, USER_FILE); st.success("Senha alterada!"); st.rerun()
+        
+        with st.expander("ADICIONAR MEMBRO"):
+            with st.form("add_u"):
+                n, user_i, pass_i, role_i = st.text_input("Nome"), st.text_input("Login"), st.text_input("Senha"), st.selectbox("Cargo", ["CRC", "Gestor"])
+                if st.form_submit_button("CRIAR"):
+                    u_df = pd.concat([u_df, pd.DataFrame([{'nome':n,'user':user_i,'pass':pass_i,'cargo':role_i}])], ignore_index=True)
+                    save_data(u_df, USER_FILE); st.rerun()
+        
+        for i, r in u_df.iterrows():
+            with st.container():
+                st.markdown(f'<div class="glass-card"><b>{r["nome"]}</b> | {r["cargo"]} | User: {r["user"]}</div>', unsafe_allow_html=True)
+                if r['user'] != 'admin':
+                    c1, c2, _ = st.columns([1,1,4])
+                    if c1.button("REFAZER SENHA", key=f"reset_btn_{i}"):
+                        st.session_state[f"reset_mode_{i}"] = True
+                    if c2.button("DELETAR", key=f"del_u_{i}"):
+                        u_df = u_df.drop(i); save_data(u_df, USER_FILE); st.rerun()
+                    
+                    if st.session_state.get(f"reset_mode_{i}"):
+                        nova_senha = st.text_input(f"Nova Senha para {r['user']}", key=f"inp_s_{i}")
+                        if st.button("SALVAR", key=f"sv_s_{i}"):
+                            u_df.at[i, 'pass'] = nova_senha
+                            save_data(u_df, USER_FILE)
+                            st.session_state[f"reset_mode_{i}"] = False
+                            st.success("Senha atualizada!")
+                            st.rerun()
